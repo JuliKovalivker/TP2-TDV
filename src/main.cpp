@@ -183,6 +183,7 @@ std::vector<std::vector<int>> heuristica_1(GAPInstance & inst) {
 
         if(deposito != inst.m) {
             inst.capacidades[deposito] -= inst.demandas[deposito][vendedor];
+            // si lo sature al deposito -> recalculo varianzas
         }
 
         asignados++;
