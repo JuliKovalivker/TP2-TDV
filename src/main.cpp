@@ -51,20 +51,13 @@ int main(int argc, char** argv) {
     std::string filename = "instances/gap/gap_a/a05100";
     if (argc > 1) filename = argv[1];
 
-    std::cout << "Reading file: " << filename << std::endl;
+    std::cout << "Leyendo: " << filename << std::endl;
 
     GAPInstance inst = leer_archivo(filename);
 
     std::cout << "m (depósitos) = " << inst.m << std::endl;
     std::cout << "n (vendedores) = " << inst.n << std::endl;
-
-    // Verificación: primeros y últimos valores de cada estructura
-    std::cout << "c[0][0]=" << inst.costos[0][0]
-              << "  c[m-1][n-1]=" << inst.costos[inst.m-1][inst.n-1] << std::endl;
-    std::cout << "a[0][0]=" << inst.demandas[0][0]
-              << "  a[m-1][n-1]=" << inst.demandas[inst.m-1][inst.n-1] << std::endl;
-    std::cout << "b[0]="   << inst.capacidades[0]
-              << "  b[m-1]=" << inst.capacidades[inst.m-1] << std::endl;
+    
 
     return 0;
 }
