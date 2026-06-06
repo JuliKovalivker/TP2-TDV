@@ -54,6 +54,8 @@ GAPInstance leer_archivo(const std::string& filename) {
     return inst;
 }
 
+///////////////////////////// HEURISTICA 1 ///////////////////////////
+
 // Armar lista de ratios por vendedor. (ratios[i][j] es el ratio c/u del vendedor i a ir al deposito j)
 std::vector<std::vector<float>> lista_de_ratios(const GAPInstance & inst) {
     std::vector<std::vector<float>> ratios = {};
@@ -99,12 +101,14 @@ std::vector<std::pair<int, float>> calcular_varianzas(const std::vector<std::vec
     return varianzas;
 }
 
-void merge(std::vector<std::pair<int, float>>& v, int left, int mid, int right) {
+
+template <typename T>
+void merge(std::vector<std::pair<int, T>>& v, int left, int mid, int right) {
     int n1 = mid - left + 1;
     int n2 = right - mid;
 
-    std::vector<std::pair<int, float>> L(n1);
-    std::vector<std::pair<int, float>> R(n2);
+    std::vector<std::pair<int, T>> L(n1);
+    std::vector<std::pair<int, T>> R(n2);
 
     for (int i = 0; i < n1; i++)
         L[i] = v[left + i];
@@ -129,7 +133,8 @@ void merge(std::vector<std::pair<int, float>>& v, int left, int mid, int right) 
         v[k++] = R[j++];
 }
 
-void mergesort(std::vector<std::pair<int, float>>& v, int left, int right) {
+template <typename T>
+void mergesort(std::vector<std::pair<int, T>>& v, int left, int right) {
     if (left >= right) return;
 
     int mid = left + (right - left) / 2;
@@ -140,9 +145,10 @@ void mergesort(std::vector<std::pair<int, float>>& v, int left, int right) {
     merge(v, left, mid, right);
 }
 
-void ordenar_varianzas(std::vector<std::pair<int, float>>& varianzas) {
-    if (!varianzas.empty()) {
-        mergesort(varianzas, 0, varianzas.size() - 1);
+template <typename T>
+void ordenar_pairs(std::vector<std::pair<int, T>>& vec) {
+    if (!vec.empty()) {
+        mergesort(vec, 0, vec.size() - 1);
     }
 }
 
@@ -172,7 +178,7 @@ std::vector<std::vector<int>> heuristica_1(GAPInstance & inst) {
     std::vector<std::vector<float>> ratios = lista_de_ratios(inst);
 
     std::vector<std::pair<int, float>> varianzas = calcular_varianzas(ratios);
-    ordenar_varianzas(varianzas);
+    ordenar_pairs(varianzas);
 
     int asignados = 0;
     while (asignados < inst.n) {
@@ -183,13 +189,90 @@ std::vector<std::vector<int>> heuristica_1(GAPInstance & inst) {
 
         if(deposito != inst.m) {
             inst.capacidades[deposito] -= inst.demandas[deposito][vendedor];
+            
             // si lo sature al deposito -> recalculo varianzas
+            // Podriamos ver el min tambien
+            //     if(inst.capacidades[deposito] == 0) { TIENE SENTIDO???
+            //         recalcular_varianzas(varianazs)
+            //     }
         }
 
         asignados++;
     }
     return asignacion;
 }
+
+///////////////////////////// HEURISTICA 2 ///////////////////////////
+
+// Armar lista de ratios por vendedor. (ratios[i][j] es el ratio c/u del vendedor i a ir al deposito j)
+std::vector<std::vector<float>> lista_de_ratios_por_deposito(const GAPInstance & inst) {
+    std::vector<std::vector<float>> ratios = {};
+    for (int i = 0; i < inst.m; i++){
+        std::vector<float> ratio_i = {};
+        for(int j = 0; j < inst.n; j++){
+            ratio_i.push_back(inst.costos[i][j] / inst.demandas[i][j]);
+        }
+        ratios.push_back(ratio_i);
+    }
+    return ratios;
+}
+
+// Devuelve la posicion del vendedor con menor ratio c/u
+// Sino hay ninguno factible, devuelve -1 
+int mejor_valido(const std::vector<float> & ratios, const int deposito, const GAPInstance & inst, const std::vector<bool> & vendedores_ocupados){
+    int vendedor_min = -1;
+    for(int v = 0; v < ratios.size(); v++) {
+        if(esFactible(v, deposito, inst) && !vendedores_ocupados[v]) {
+            if(vendedor_min == -1) vendedor_min = v; // Busco un primer factible
+            else if(ratios[vendedor_min] > ratios[v]) vendedor_min = v;
+        }
+    }
+    return vendedor_min;
+}
+
+
+std::vector<std::vector<int>> heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
+    std::vector<std::vector<int>> asignacion = {};
+    for(int j = 0; j < inst.m; j++){ // m+1 depositos. Los vendedores asignados al m+1, no van a ningun deposito.
+        asignacion.push_back({});
+    }
+    std::vector<std::vector<float>> ratios = lista_de_ratios_por_deposito(inst);
+
+    // Depositos ordenados por capacidad (menor a mayor)
+    std::vector<std::pair<int, int>> depositos = {};
+    for(int i = 0; i < inst.m; i++){
+        depositos.push_back(std::pair(i,inst.capacidades[i]));
+    }
+    ordenar_pairs(depositos);
+
+    std::vector<bool> vendedores_ocupados(inst.n, false);
+    int asignados = 0;
+    bool cambie = true;
+
+    while (cambie && asignados != inst.n) {
+        cambie = false;
+        for(int i = 0; i < inst.m; i++) {
+            int d = depositos[i].first; // el siguiente deposito
+            int v = mejor_valido(ratios[d], d, inst, vendedores_ocupados);
+            if(v != -1) {
+                asignacion[d].push_back(v);
+                inst.capacidades[d] -= inst.demandas[d][v];
+                vendedores_ocupados[v] = true;
+                asignados++;
+                cambie = true;
+            }
+        }
+    }
+
+    std::vector<int> indices_falsos;
+    for (int i = 0; i < vendedores_ocupados.size(); i++) {
+        if (!vendedores_ocupados[i])
+            indices_falsos.push_back(i);
+    }
+    asignacion.push_back(indices_falsos); // los que quedaron sin asignar
+    return asignacion;
+}
+
 
 void print_asignacion(const std::vector<std::vector<int>>& asignacion) {
     for (int i = 0; i < asignacion.size(); i++) {
@@ -204,7 +287,20 @@ void print_asignacion(const std::vector<std::vector<int>>& asignacion) {
 
 int main(int argc, char** argv) {
     std::string filename = "instances/gap/gap_a/a05100";
-    if (argc > 1) filename = argv[1];
+    int heuristica = 0;
+
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "--heuristica-1")
+            heuristica = 1;
+        else if (arg == "--heuristica-2")
+            heuristica = 2;
+        else if (arg.substr(0, 2) == "--") {
+            std::cerr << "Argumento inválido: " << arg << ". Usar --heuristica-1 o --heuristica-2." << std::endl;
+            return 1;
+        } else
+            filename = arg;
+    }
 
     std::cout << "Leyendo: " << filename << std::endl;
 
@@ -213,7 +309,17 @@ int main(int argc, char** argv) {
     std::cout << "m (depósitos) = " << inst.m << std::endl;
     std::cout << "n (vendedores) = " << inst.n << std::endl;
 
-    std::vector<std::vector<int>> asignacion = heuristica_1(inst);
+    std::vector<std::vector<int>> asignacion;
+
+    if (heuristica == 1)
+        asignacion = heuristica_1(inst);
+    else if (heuristica == 2)
+        asignacion = heuristica_2(inst);
+    else {
+        std::cerr << "Heurística inválida. Usar --heuristica-1 o --heuristica-2" << std::endl;
+        return 1;
+    }
+
     print_asignacion(asignacion);
     return 0;
 }
