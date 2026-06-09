@@ -8,16 +8,18 @@
 
 class GAPInstance {
     public:
+        GAPInstance() {}
         GAPInstance(const std::string& filename){leer_archivo(filename);}
         int m; // depositos
         int n; // vendedores
+
+        int costo_max;
 
         std::vector<std::vector<double>> costos;     // c[i][j]: costo asignar al depósito i el vendedor j 
         std::vector<std::vector<double>> demandas;   // d[i][j]: demanda de depósito i del vendedor j  
         std::vector<double> capacidades;             // c[i]: capacidad del depósito j
     
     private:
-        int _costo_max;
 
         void leer_archivo(const std::string& filename) {
             std::ifstream file(filename);
@@ -36,8 +38,8 @@ class GAPInstance {
             for (int i = 0; i < m; i++)
                 for (int j = 0; j < n; j++) {
                     file >> costos[i][j];
-                    if (costos[i][j] > _costo_max)
-                        _costo_max = costos[i][j];
+                    if (costos[i][j] > costo_max)
+                        costo_max = costos[i][j];
                 }
                 
             // Leer matriz de consumos demandas[i][j]: m filas, n columnas
@@ -54,6 +56,105 @@ class GAPInstance {
             }
         }
 
+};
+
+// Modificar para agregar desde aca
+class Asignacion {
+    GAPInstance* _instancia; 
+    std::vector<std::vector<int>> _asignacion;
+    std::vector<int> _deposito_por_vendedor;
+
+    public:
+        Asignacion() : _instancia(nullptr) {}
+        
+        Asignacion(GAPInstance& inst) : 
+            _instancia(&inst),
+            _deposito_por_vendedor(inst.n, 0)  // n ceros
+        {
+            for(int j = 0; j <= inst.m; j++){
+                _asignacion.push_back({});
+            }
+        }
+        
+        int costo = 0;
+
+        void asignar(int d, int v) {
+            _asignacion[d].push_back(v);
+            _deposito_por_vendedor[v] = d;
+        }
+
+        void print() {
+            for (int i = 0; i < _asignacion.size(); i++) {
+                std::cout << "[" << i << "]: ";
+                for (int j = 0; j < _asignacion[i].size(); j++) {
+                    std::cout << _asignacion[i][j];
+                    if (j < _asignacion[i].size() - 1) std::cout << ", ";
+                }
+                std::cout << "\n";
+            }
+        }
+
+        void calcularCostos(const std::vector<std::vector<double>> & costos, int costo_max){
+            int res = 0;
+            for(int d = 0; d < _asignacion.size()-1; d++){
+                for(int v = 0; v < _asignacion[d].size(); v++){
+                    res+=costos[d][v];
+                }
+            }
+            //ultima asignacion son los que quedaron sin asignar
+            for(int v = 0; v < _asignacion[_asignacion.size()-1].size(); v++){
+                res+=3*costo_max;
+            }
+            costo = res;
+        }
+
+        bool operator==(const Asignacion& otro) const {
+            return costo == otro.costo;
+        }
+
+        bool operator<(const Asignacion& otro) const {
+            return costo < otro.costo;
+        }
+
+        bool operator>(const Asignacion& otro) const {
+            return costo > otro.costo;
+        }
+
+        // Leer sobre la instancia
+        int vendedores() {
+            return _instancia->n;
+        }
+        
+        int depositos() {
+            return _instancia->m;
+        }
+
+        int deposito_de(int vendedor) {
+            return _deposito_por_vendedor[vendedor];
+        }
+
+        std::vector<int>& vendedores_de(int deposito) {
+            return _asignacion[deposito];
+        }
+
+        // bool es_factible_swap(int v1, int v2) {}
+
+        // O(m)
+        int deposito_mas_barato(int vendedor){
+            int deposito_actual = deposito_de(vendedor);
+            int min = deposito_actual == 0 ? 1 : 0;
+            for(int d = 0; d < depositos(); d++) {
+                if (_instancia->costos[min][vendedor] > _instancia->costos[d][vendedor] && d != deposito_actual){
+                    min = d;
+                }
+            }
+            return min;
+        }
+
+    private:
+        std::vector<std::vector<int>> _asignacion = {}; 
+        std::vector<int> _deposito_por_vendedor; 
+        GAPInstance _instancia;
 };
 
 
@@ -173,11 +274,9 @@ int min_valido(const int sig, const std::vector<float> & ratios, const GAPInstan
     return deposito_min;
 }
 
-std::vector<std::vector<int>> heuristica_1(GAPInstance & inst) {
-    std::vector<std::vector<int>> asignacion = {};
-    for(int j = 0; j <= inst.m; j++){ // m+1 depositos. Los vendedores asignados al m+1, no van a ningun deposito.
-        asignacion.push_back({});
-    }
+Asignacion heuristica_1(GAPInstance & inst) {
+    Asignacion asignacion = Asignacion(inst);
+
     std::vector<std::vector<float>> ratios = lista_de_ratios(inst);
 
     std::vector<std::pair<int, float>> varianzas = calcular_varianzas(ratios);
@@ -188,7 +287,7 @@ std::vector<std::vector<int>> heuristica_1(GAPInstance & inst) {
         std::pair<int, float> sig = varianzas[varianzas.size() - asignados - 1]; // Asginamos el de mayor varianza
         int vendedor = sig.first;
         int deposito = min_valido(vendedor, ratios[vendedor], inst);
-        asignacion[deposito].push_back(vendedor);
+        asignacion.asignar(deposito, vendedor);
 
         if(deposito != inst.m) {
             inst.capacidades[deposito] -= inst.demandas[deposito][vendedor];
@@ -202,6 +301,7 @@ std::vector<std::vector<int>> heuristica_1(GAPInstance & inst) {
 
         asignados++;
     }
+    
     return asignacion;
 }
 
@@ -234,11 +334,9 @@ int mejor_valido(const std::vector<float> & ratios, const int deposito, const GA
 }
 
 
-std::vector<std::vector<int>> heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
-    std::vector<std::vector<int>> asignacion = {};
-    for(int j = 0; j < inst.m; j++){ // m+1 depositos. Los vendedores asignados al m+1, no van a ningun deposito.
-        asignacion.push_back({});
-    }
+Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
+    Asignacion asignacion = Asignacion(inst);
+    
     std::vector<std::vector<float>> ratios = lista_de_ratios_por_deposito(inst);
 
     // Depositos ordenados por capacidad (menor a mayor)
@@ -258,7 +356,7 @@ std::vector<std::vector<int>> heuristica_2(GAPInstance & inst) { // PRIMERO DEPO
             int d = depositos[i].first; // el siguiente deposito
             int v = mejor_valido(ratios[d], d, inst, vendedores_ocupados);
             if(v != -1) {
-                asignacion[d].push_back(v);
+                asignacion.asignar(d,v);
                 inst.capacidades[d] -= inst.demandas[d][v];
                 vendedores_ocupados[v] = true;
                 asignados++;
@@ -267,26 +365,28 @@ std::vector<std::vector<int>> heuristica_2(GAPInstance & inst) { // PRIMERO DEPO
         }
     }
 
+    // Agregar los que quedaron afuera
     std::vector<int> indices_falsos;
     for (int i = 0; i < vendedores_ocupados.size(); i++) {
         if (!vendedores_ocupados[i])
-            indices_falsos.push_back(i);
+        asignacion.asignar(inst.m, i);
     }
-    asignacion.push_back(indices_falsos); // los que quedaron sin asignar
     return asignacion;
 }
 
+///////////////// BUSQUEDA LOCAL 1 ///////////////
+void busqueda_local_1(Asignacion & asig) {
+    for(int v = 0; v < asig.vendedores(); v++){
+        int d = asig.deposito_de(v);
+        int d_min = asig.deposito_mas_barato(v);
 
-void print_asignacion(const std::vector<std::vector<int>>& asignacion) {
-    for (int i = 0; i < asignacion.size(); i++) {
-        std::cout << "[" << i << "]: ";
-        for (int j = 0; j < asignacion[i].size(); j++) {
-            std::cout << asignacion[i][j];
-            if (j < asignacion[i].size() - 1) std::cout << ", ";
+        std::vector<int> lista_de_vendedores = asig.vendedores_de(d_min);
+        for(int v_min = 0; v_min < lista_de_vendedores.size(); v_min++) {
+
         }
-        std::cout << "\n";
     }
 }
+
 
 int main(int argc, char** argv) {
     std::string filename = "instances/gap/gap_a/a05100";
@@ -312,7 +412,7 @@ int main(int argc, char** argv) {
     std::cout << "m (depósitos) = " << inst.m << std::endl;
     std::cout << "n (vendedores) = " << inst.n << std::endl;
 
-    std::vector<std::vector<int>> asignacion;
+    Asignacion asignacion;
 
     if (heuristica == 1)
         asignacion = heuristica_1(inst);
@@ -323,6 +423,9 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    print_asignacion(asignacion);
+    asignacion.print();
+    asignacion.calcularCostos(inst.costos, inst.costo_max);
+
+    std::cout << asignacion.costo << std::endl;
     return 0;
 }
