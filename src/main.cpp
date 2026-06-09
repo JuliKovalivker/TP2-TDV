@@ -6,53 +6,56 @@
 #include <numeric>
 #include <stdexcept>
 
-struct GAPInstance {
-    int m; // depósitos
-    int n; // vendedores
-    std::vector<std::vector<double>> costos; // c[i][j]: costo asignar al depósito i el vendedor j 
-    std::vector<std::vector<double>> demandas; // d[i][j]: demanda de depósito i del vendedor j  
-    std::vector<double> capacidades;             // c[i]: capacidad del depósito j
+class GAPInstance {
+    public:
+        GAPInstance(const std::string& filename){leer_archivo(filename);}
+        int m; // depositos
+        int n; // vendedores
 
-    int costo_max = 0; // costo maximo de la instancia
+        std::vector<std::vector<double>> costos;     // c[i][j]: costo asignar al depósito i el vendedor j 
+        std::vector<std::vector<double>> demandas;   // d[i][j]: demanda de depósito i del vendedor j  
+        std::vector<double> capacidades;             // c[i]: capacidad del depósito j
+    
+    private:
+        int _costo_max;
+
+        void leer_archivo(const std::string& filename) {
+            std::ifstream file(filename);
+            if (!file.is_open()) {
+                throw std::runtime_error("No se pudo abrir el archivo: " + filename);
+            }
+
+            file >> m >> n;
+
+            // Reservar matrices m x n
+            costos.assign(m, std::vector<double>(n));
+            demandas.assign(m, std::vector<double>(n));
+            capacidades.resize(m);
+            
+            // Leer matriz de costos costos[i][j]: m filas, n columnas
+            for (int i = 0; i < m; i++)
+                for (int j = 0; j < n; j++) {
+                    file >> costos[i][j];
+                    if (costos[i][j] > _costo_max)
+                        _costo_max = costos[i][j];
+                }
+                
+            // Leer matriz de consumos demandas[i][j]: m filas, n columnas
+            for (int i = 0; i < m; i++)
+                for (int j = 0; j < n; j++)
+                    file >> demandas[i][j];
+
+            // Leer capacidades capacidades[i]: m valores
+            for (int i = 0; i < m; i++)
+                file >> capacidades[i];
+
+            if (file.fail() && !file.eof()) {
+                throw std::runtime_error("Error al leer el archivo: datos incompletos o malformados.");
+            }
+        }
+
 };
 
-GAPInstance leer_archivo(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("No se pudo abrir el archivo: " + filename);
-    }
-
-    GAPInstance inst;
-    file >> inst.m >> inst.n;
-
-    // Reservar matrices m x n
-    inst.costos.assign(inst.m, std::vector<double>(inst.n));
-    inst.demandas.assign(inst.m, std::vector<double>(inst.n));
-    inst.capacidades.resize(inst.m);
-    
-    // Leer matriz de costos costos[i][j]: m filas, n columnas
-    for (int i = 0; i < inst.m; i++)
-        for (int j = 0; j < inst.n; j++) {
-            file >> inst.costos[i][j];
-            if (inst.costos[i][j] > inst.costo_max)
-                inst.costo_max = inst.costos[i][j];
-        }
-        
-    // Leer matriz de consumos demandas[i][j]: m filas, n columnas
-    for (int i = 0; i < inst.m; i++)
-        for (int j = 0; j < inst.n; j++)
-            file >> inst.demandas[i][j];
-
-    // Leer capacidades capacidades[i]: m valores
-    for (int i = 0; i < inst.m; i++)
-        file >> inst.capacidades[i];
-
-    if (file.fail() && !file.eof()) {
-        throw std::runtime_error("Error al leer el archivo: datos incompletos o malformados.");
-    }
-
-    return inst;
-}
 
 ///////////////////////////// HEURISTICA 1 ///////////////////////////
 
@@ -304,7 +307,7 @@ int main(int argc, char** argv) {
 
     std::cout << "Leyendo: " << filename << std::endl;
 
-    GAPInstance inst = leer_archivo(filename);
+    GAPInstance inst = GAPInstance(filename);
 
     std::cout << "m (depósitos) = " << inst.m << std::endl;
     std::cout << "n (vendedores) = " << inst.n << std::endl;
