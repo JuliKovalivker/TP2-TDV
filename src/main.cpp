@@ -62,7 +62,7 @@ std::vector<std::vector<float>> lista_de_ratios(const GAPInstance & inst) {
     for (int j = 0; j < inst.n; j++){
         std::vector<float> ratio_j = {};
         for(int i = 0; i < inst.m; i++){
-            ratio_j.push_back(inst.costos[i][j] / inst.demandas[i][j]);
+            ratio_j.push_back(inst.costos[i][j] / inst.demandas[i][j]); // SI NO MIRAMOS RATIO ES MUCHO MEJOR
         }
         ratios.push_back(ratio_j);
     }
