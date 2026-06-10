@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 #include <numeric>
+#include <algorithm>
 #include <stdexcept>
 
 class GAPInstance {
@@ -13,7 +14,7 @@ class GAPInstance {
         int m; // depositos
         int n; // vendedores
 
-        int costo_max;
+        double costo_max;
 
         std::vector<std::vector<double>> costos;     // c[i][j]: costo asignar al depósito i el vendedor j 
         std::vector<std::vector<double>> demandas;   // d[i][j]: demanda de depósito i del vendedor j  
@@ -60,10 +61,6 @@ class GAPInstance {
 
 // Modificar para agregar desde aca
 class Asignacion {
-    GAPInstance* _instancia; 
-    std::vector<std::vector<int>> _asignacion;
-    std::vector<int> _deposito_por_vendedor;
-
     public:
         Asignacion() : _instancia(nullptr) {}
         
@@ -71,16 +68,25 @@ class Asignacion {
             _instancia(&inst),
             _deposito_por_vendedor(inst.n, 0)  // n ceros
         {
-            for(int j = 0; j <= inst.m; j++){
+            for(int j = 0; j < inst.m; j++){
                 _asignacion.push_back({});
+                _capacidades_remanentes.push_back(inst.capacidades[j]);
             }
+            _asignacion.push_back({}); // Agregar deposito fantasma
+            costo = 0;
         }
         
-        int costo = 0;
+        double costo;
 
         void asignar(int d, int v) {
             _asignacion[d].push_back(v);
             _deposito_por_vendedor[v] = d;
+
+            // Si no es el depósito fantasma
+            if (d < _instancia->m) {
+                _capacidades_remanentes[d] -= _instancia->demandas[d][v];
+            }
+            costo += costo_de(d, v);
         }
 
         void print() {
@@ -94,19 +100,6 @@ class Asignacion {
             }
         }
 
-        void calcularCostos(const std::vector<std::vector<double>> & costos, int costo_max){
-            int res = 0;
-            for(int d = 0; d < _asignacion.size()-1; d++){
-                for(int v = 0; v < _asignacion[d].size(); v++){
-                    res+=costos[d][v];
-                }
-            }
-            //ultima asignacion son los que quedaron sin asignar
-            for(int v = 0; v < _asignacion[_asignacion.size()-1].size(); v++){
-                res+=3*costo_max;
-            }
-            costo = res;
-        }
 
         bool operator==(const Asignacion& otro) const {
             return costo == otro.costo;
@@ -137,14 +130,75 @@ class Asignacion {
             return _asignacion[deposito];
         }
 
-        // bool es_factible_swap(int v1, int v2) {}
+        int costo_de(int deposito, int vendedor) {
+            if(!es_deposito_fantasma(deposito)){
+                return _instancia->costos[deposito][vendedor];
+            }
+            return _instancia->costo_max*3;
+        }
+
+        int capacidad_remanente(int deposito) {
+            return _capacidades_remanentes[deposito];
+        }
+
+        bool es_deposito_fantasma(int deposito){
+            return deposito == _instancia->m;
+        }
+
+        bool es_factible_swap(int v1, int v2) {
+            int d1 = deposito_de(v1);
+            int d2 = deposito_de(v2);
+
+            if(d1 == d2) return true; // si ya estan en el mismo, siempre puedo swapear
+            
+            // si d1 es fantasma
+            if(es_deposito_fantasma(d1)) {
+                int c2 = capacidad_remanente(d2);
+                return c2 - _instancia->demandas[d2][v2] >= _instancia->demandas[d2][v1];
+            }
+            else if(es_deposito_fantasma(d2)) {
+                int c1 = capacidad_remanente(d1);
+                return c1 - _instancia->demandas[d1][v1] >= _instancia->demandas[d1][v2];
+            } else {
+                int c1 = capacidad_remanente(d1);
+                int c2 = capacidad_remanente(d2);
+    
+                return c1 - _instancia->demandas[d1][v1] >= _instancia->demandas[d1][v2] && c2 - _instancia->demandas[d2][v2] >= _instancia->demandas[d2][v1];
+            }
+        }
+
+        // Mandar v1 al deposito de v2 y viceversa
+        void swap(int v1, int v2) {
+            int d1 = deposito_de(v1);
+            int d2 = deposito_de(v2);
+            if(d1 != d2) {
+                costo = costo - costo_de(d1,v1) - costo_de(d2, v2) + costo_de(d1, v2) + costo_de(d2, v1);
+    
+                _deposito_por_vendedor[v1] = d2;
+                _deposito_por_vendedor[v2] = d1;
+    
+                auto it1 = std::find(_asignacion[d1].begin(), _asignacion[d1].end(), v1); 
+                auto it2 = std::find(_asignacion[d2].begin(), _asignacion[d2].end(), v2); 
+    
+                if (it1 != _asignacion[d1].end() && it2 != _asignacion[d2].end()){
+                    *it1 = v2;
+                    *it2 = v1;
+                }
+                if(!es_deposito_fantasma(d1)) {
+                    _capacidades_remanentes[d1] += _instancia->demandas[d1][v1] -  _instancia->demandas[d1][v2];
+                }
+                if(!es_deposito_fantasma(d2)){
+                    _capacidades_remanentes[d2] += _instancia->demandas[d2][v2] -  _instancia->demandas[d2][v1];
+                }
+            }
+        }
 
         // O(m)
-        int deposito_mas_barato(int vendedor){
-            int deposito_actual = deposito_de(vendedor);
+        int deposito_mas_barato(int v){
+            int deposito_actual = deposito_de(v);
             int min = deposito_actual == 0 ? 1 : 0;
             for(int d = 0; d < depositos(); d++) {
-                if (_instancia->costos[min][vendedor] > _instancia->costos[d][vendedor] && d != deposito_actual){
+                if (costo_de(min,v) > costo_de(d,v) && d != deposito_actual){
                     min = d;
                 }
             }
@@ -152,9 +206,10 @@ class Asignacion {
         }
 
     private:
-        std::vector<std::vector<int>> _asignacion = {}; 
-        std::vector<int> _deposito_por_vendedor; 
-        GAPInstance _instancia;
+        GAPInstance* _instancia; 
+        std::vector<std::vector<int>> _asignacion;
+        std::vector<int> _deposito_por_vendedor;
+        std::vector<float> _capacidades_remanentes;
 };
 
 
@@ -166,7 +221,7 @@ std::vector<std::vector<float>> lista_de_ratios(const GAPInstance & inst) {
     for (int j = 0; j < inst.n; j++){
         std::vector<float> ratio_j = {};
         for(int i = 0; i < inst.m; i++){
-            ratio_j.push_back(inst.costos[i][j] / inst.demandas[i][j]); // SI NO MIRAMOS RATIO ES MUCHO MEJOR
+            ratio_j.push_back(inst.costos[i][j]); // SI NO MIRAMOS RATIO ES MUCHO MEJOR
         }
         ratios.push_back(ratio_j);
     }
@@ -376,13 +431,19 @@ Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
 
 ///////////////// BUSQUEDA LOCAL 1 ///////////////
 void busqueda_local_1(Asignacion & asig) {
-    for(int v = 0; v < asig.vendedores(); v++){
-        int d = asig.deposito_de(v);
-        int d_min = asig.deposito_mas_barato(v);
+    for(int v1 = 0; v1 < asig.vendedores(); v1++){
+        int d1 = asig.deposito_de(v1);
+        int d2 = asig.deposito_mas_barato(v1);
 
-        std::vector<int> lista_de_vendedores = asig.vendedores_de(d_min);
-        for(int v_min = 0; v_min < lista_de_vendedores.size(); v_min++) {
+        std::vector<int> lista_de_vendedores = asig.vendedores_de(d2);
 
+        for(int v2 = 0; v2 < lista_de_vendedores.size(); v2++) {
+            if(v1 != v2 && d1 != d2 && asig.es_factible_swap(v1, v2)){
+                int costo_nuevo = asig.costo - asig.costo_de(d1,v1) - asig.costo_de(d2, v2) + asig.costo_de(d2, v1) + asig.costo_de(d1, v2);
+                if(costo_nuevo < asig.costo) {
+                    asig.swap(v1,v2);
+                }
+            }
         }
     }
 }
@@ -424,7 +485,9 @@ int main(int argc, char** argv) {
     }
 
     asignacion.print();
-    asignacion.calcularCostos(inst.costos, inst.costo_max);
+    std::cout << asignacion.costo << std::endl;
+    
+    busqueda_local_1(asignacion);
 
     std::cout << asignacion.costo << std::endl;
     return 0;
