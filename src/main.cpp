@@ -196,7 +196,7 @@ class Asignacion {
         // O(m)
         int deposito_mas_barato(int v){
             int deposito_actual = deposito_de(v);
-            int min = deposito_actual == 0 ? 1 : 0;
+            int min = 0;
             for(int d = 0; d < depositos(); d++) {
                 if (costo_de(min,v) > costo_de(d,v) && d != deposito_actual){
                     min = d;
@@ -437,8 +437,9 @@ void busqueda_local_1(Asignacion & asig) {
 
         std::vector<int> lista_de_vendedores = asig.vendedores_de(d2);
 
-        for(int v2 = 0; v2 < lista_de_vendedores.size(); v2++) {
-            if(v1 != v2 && d1 != d2 && asig.es_factible_swap(v1, v2)){
+        for(int i = 0; i < lista_de_vendedores.size(); i++) {
+            int v2 = lista_de_vendedores[i];
+            if(v1 != v2 && d1 != d2 && asig.es_factible_swap(v1,v2)){
                 int costo_nuevo = asig.costo - asig.costo_de(d1,v1) - asig.costo_de(d2, v2) + asig.costo_de(d2, v1) + asig.costo_de(d1, v2);
                 if(costo_nuevo < asig.costo) {
                     asig.swap(v1,v2);
