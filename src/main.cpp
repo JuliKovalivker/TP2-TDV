@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <utility>
 #include <cmath>
 #include <numeric>
 #include <algorithm>
@@ -130,7 +131,7 @@ class Asignacion {
             return _asignacion[deposito];
         }
 
-        int costo_de(int deposito, int vendedor) {
+        int costo_de(int deposito, int vendedor) const {
             if(!es_deposito_fantasma(deposito)){
                 return _instancia->costos[deposito][vendedor];
             }
@@ -141,7 +142,7 @@ class Asignacion {
             return _capacidades_remanentes[deposito];
         }
 
-        bool es_deposito_fantasma(int deposito){
+        bool es_deposito_fantasma(int deposito) const {
             return deposito == _instancia->m;
         }
 
@@ -167,13 +168,43 @@ class Asignacion {
             }
         }
 
+        // PRE: v1 y v2 contienen 2 vendedores de un mismo depósito.
+        bool es_factible_2swap(std::pair<int, int> v1, std::pair<int, int> v2) {
+            // del primer deposito
+            int v11 = v1.first;
+            int v12 = v1.second;
+            
+            // del segundo deposito
+            int v21 = v2.first;
+            int v22 = v2.second;
+
+            int d1 = deposito_de(v11);
+            int d2 = deposito_de(v21);
+
+            if(d1 == d2) return true; // si ya estan en el mismo, siempre puedo swapear
+            
+            // si d1 es fantasma
+            if(es_deposito_fantasma(d1)) {
+                int c2 = capacidad_remanente(d2);
+                return c2 - _instancia->demandas[d2][v21] - _instancia->demandas[d2][v22] >= _instancia->demandas[d2][v11] + _instancia->demandas[d2][v12];
+            }
+            else if(es_deposito_fantasma(d2)) {
+                int c1 = capacidad_remanente(d1);
+                return  c1 - _instancia->demandas[d1][v11] - _instancia->demandas[d1][v12]  >= _instancia->demandas[d1][v21] + _instancia->demandas[d1][v22];
+            } else {
+                int c1 = capacidad_remanente(d1);
+                int c2 = capacidad_remanente(d2);
+                
+                return c1 - _instancia->demandas[d1][v11] - _instancia->demandas[d1][v12]  >= _instancia->demandas[d1][v21] + _instancia->demandas[d1][v22] && c2 - _instancia->demandas[d2][v21] - _instancia->demandas[d2][v22] >= _instancia->demandas[d2][v11] + _instancia->demandas[d2][v12];
+            }
+        }
+
         // Mandar v1 al deposito de v2 y viceversa
         void swap(int v1, int v2) {
             int d1 = deposito_de(v1);
             int d2 = deposito_de(v2);
             if(d1 != d2) {
                 costo = costo - costo_de(d1,v1) - costo_de(d2, v2) + costo_de(d1, v2) + costo_de(d2, v1);
-    
                 _deposito_por_vendedor[v1] = d2;
                 _deposito_por_vendedor[v2] = d1;
     
@@ -190,6 +221,8 @@ class Asignacion {
                 if(!es_deposito_fantasma(d2)){
                     _capacidades_remanentes[d2] += _instancia->demandas[d2][v2] -  _instancia->demandas[d2][v1];
                 }
+            }
+            else {
             }
         }
 
@@ -429,8 +462,8 @@ Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
     return asignacion;
 }
 
-///////////////// BUSQUEDA LOCAL 1 ///////////////
-void busqueda_local_1(Asignacion & asig) {
+///////////////// BUSQUEDA LOCAL SWAP CORRIENDO SOLAMENTE CON EL MEJOR DEPOSITO ///////////////
+void busqueda_local_1bis(Asignacion & asig) {
     for(int v1 = 0; v1 < asig.vendedores(); v1++){
         int d1 = asig.deposito_de(v1);
         int d2 = asig.deposito_mas_barato(v1);
@@ -446,6 +479,103 @@ void busqueda_local_1(Asignacion & asig) {
                 }
             }
         }
+    }
+}
+///////////////// BUSQUEDA LOCAL SWAP ///////////////
+void busqueda_local_1_aux(Asignacion & asig){
+    for(int v1 = 0; v1 < asig.vendedores(); v1++){
+        int d1 = asig.deposito_de(v1);
+
+        for(int d2 = 0; d2 <= asig.depositos(); d2++) { // incluye depósito "fantasma"
+            if(d1 == d2) continue;
+            std::vector<int> lista_de_vendedores = asig.vendedores_de(d2);
+    
+            for(int i = 0; i < lista_de_vendedores.size(); i++) {
+                int v2 = lista_de_vendedores[i];
+                if(v1 != v2 && asig.es_factible_swap(v1,v2)){
+                    int costo_nuevo = asig.costo - asig.costo_de(d1,v1) - asig.costo_de(d2, v2) + asig.costo_de(d2, v1) + asig.costo_de(d1, v2);
+                    if(costo_nuevo < asig.costo) {
+                        asig.swap(v1,v2);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void busqueda_local_1(Asignacion & asig, int k = 100) {
+    int c1 = 0;
+    int c2 = 1;
+    for (int i = 0; i < k && c1 != c2; i++){
+        c1 = asig.costo;
+        busqueda_local_1_aux(asig);
+        c2 = asig.costo;
+    }
+}
+
+
+
+///////////////// BUSQUEDA LOCAL 2-SWAP MAS CERCANOS ///////////////
+
+// PRE: lista_de_vendedores.size() > 1
+std::pair<int,int> dos_mas_baratos(std::vector<int> lista_de_vendedores, int deposito, const Asignacion & asig) {
+    std::pair<int,int> res = {lista_de_vendedores[0],0}; // 2 mas baratos
+    for(int i = 0; i < lista_de_vendedores.size(); i++){
+        int v = lista_de_vendedores[i];
+        if(asig.costo_de(deposito, v) < asig.costo_de(deposito, res.first)) {
+            res.first = v;
+        }
+    }
+    
+    if(res.first != lista_de_vendedores[0]) res.second = lista_de_vendedores[0];
+    else res.second = lista_de_vendedores[1];
+
+    for(int i = 0; i < lista_de_vendedores.size(); i++){
+        int v = lista_de_vendedores[i];
+        if(v == res.first) continue;
+        if(asig.costo_de(deposito, v) < asig.costo_de(deposito, res.second)) {
+            res.second = v;
+        }
+    }
+    return res;
+}
+
+void busqueda_local_2_aux(Asignacion & asig){
+    for(int d1 = 0; d1 <= asig.depositos(); d1++){
+        for(int d2 = d1+1; d2 <= asig.depositos(); d2++) {
+            std::vector<int> lista_de_vendedores_1 = asig.vendedores_de(d1);
+            std::vector<int> lista_de_vendedores_2 = asig.vendedores_de(d2);
+
+            if(lista_de_vendedores_1.size() <= 1 || lista_de_vendedores_2.size() <= 1) continue;
+
+            std::pair<int,int> mejores_1 = dos_mas_baratos(lista_de_vendedores_1, d2, asig);
+            std::pair<int,int> mejores_2 = dos_mas_baratos(lista_de_vendedores_2, d1, asig);
+
+            if(asig.es_factible_2swap(mejores_1, mejores_2)){
+                // del primer deposito
+                int v11 = mejores_1.first;
+                int v12 = mejores_1.second;
+                
+                // del segundo deposito
+                int v21 = mejores_2.first;
+                int v22 = mejores_2.second;
+                int costo_nuevo = asig.costo - asig.costo_de(d1, v11) - asig.costo_de(d1, v12) - asig.costo_de(d2, v21) - asig.costo_de(d2, v22) + asig.costo_de(d1, v21) + asig.costo_de(d1, v22) + asig.costo_de(d2, v11) + asig.costo_de(d2, v12);
+                if(costo_nuevo < asig.costo){
+                    asig.swap(v11,v21);
+                    asig.swap(v12,v22);
+                }
+            }
+        }
+    }
+}
+
+void busqueda_local_2(Asignacion & asig, int k = 100) {
+    int c1 = 0;
+    int c2 = 1;
+    for (int i = 0; i < k && c1 != c2; i++){
+        c1 = asig.costo;
+        busqueda_local_2_aux(asig);
+        c2 = asig.costo;
     }
 }
 
@@ -487,8 +617,8 @@ int main(int argc, char** argv) {
 
     asignacion.print();
     std::cout << asignacion.costo << std::endl;
-    
-    busqueda_local_1(asignacion);
+
+    busqueda_local_2(asignacion);
 
     std::cout << asignacion.costo << std::endl;
     return 0;
