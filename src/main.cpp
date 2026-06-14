@@ -138,6 +138,13 @@ class Asignacion {
             return _instancia->costo_max*3;
         }
 
+        int demanda_de(int deposito, int vendedor) const {
+            if(es_deposito_fantasma(deposito)){
+                return 0;
+            }
+            return _instancia->demandas[deposito][vendedor];
+        }
+
         int capacidad_remanente(int deposito) {
             return _capacidades_remanentes[deposito];
         }
@@ -222,7 +229,27 @@ class Asignacion {
                     _capacidades_remanentes[d2] += _instancia->demandas[d2][v2] -  _instancia->demandas[d2][v1];
                 }
             }
-            else {
+        }
+
+        // Mandar v al deposito d
+        void relocate(int d, int v) {
+            int d_actual = deposito_de(v);
+            if(d_actual != d) {
+                costo = costo - costo_de(d_actual,v) + costo_de(d, v);
+                _deposito_por_vendedor[v] = d;
+                
+                // Borrar v del deposito actual
+                auto it = std::find(_asignacion[d_actual].begin(), _asignacion[d_actual].end(), v); 
+                _asignacion[d_actual].erase(it);
+                
+                _asignacion[d].push_back(v);
+
+                if(!es_deposito_fantasma(d)) {
+                    _capacidades_remanentes[d] -=  _instancia->demandas[d][v];
+                }
+                if(!es_deposito_fantasma(d_actual)){
+                    _capacidades_remanentes[d_actual] += _instancia->demandas[d_actual][v];
+                }
             }
         }
 
@@ -588,6 +615,41 @@ void busqueda_local_2(Asignacion & asig, int k = 100) {
     }
 }
 
+///////////////// BUSQUEDA LOCAL RELOCATE ///////////////
+
+void busqueda_local_3_aux(Asignacion & asig){
+    int best_costo = asig.costo;
+    std::vector<int> best = {-1,-1}; // best[0] es el deposito y best[1] es el vendedor
+
+    for (int v = 0; v < asig.vendedores(); v++){
+        int d_actual = asig.deposito_de(v);
+        for(int d = 0; d < asig.depositos(); d++){
+            if(d == d_actual) continue;
+            if(asig.capacidad_remanente(d) > asig.demanda_de(d, v)){
+                int costo_nuevo = asig.costo - asig.costo_de(d_actual, v) + asig.costo_de(d,v);
+                if(costo_nuevo < best_costo) {
+                    best_costo = costo_nuevo;
+                    best[0] = d;
+                    best[1] = v;
+                }
+            }
+        }
+    }
+    if(best_costo < asig.costo){
+        asig.relocate(best[0],best[1]);
+    } 
+}
+
+void busqueda_local_3(Asignacion & asig, int k = 100) {
+    int c1 = 0;
+    int c2 = 1;
+    for (int i = 0; i < k && c1 != c2; i++){
+        c1 = asig.costo;
+        busqueda_local_3_aux(asig);
+        c2 = asig.costo;
+    }
+}
+
 
 int main(int argc, char** argv) {
     std::string filename = "instances/gap/gap_a/a05100";
@@ -627,7 +689,9 @@ int main(int argc, char** argv) {
     asignacion.print();
     std::cout << asignacion.costo << std::endl;
 
+    busqueda_local_1(asignacion);
     busqueda_local_2(asignacion);
+    busqueda_local_3(asignacion);
 
     std::cout << asignacion.costo << std::endl;
     return 0;
