@@ -6,7 +6,10 @@
 #include <cmath>
 #include <numeric>
 #include <algorithm>
+#include <random>
 #include <stdexcept>
+
+const int SEMILLA = 20;
 
 class GAPInstance {
     public:
@@ -90,6 +93,26 @@ class Asignacion {
             costo += costo_de(d, v);
         }
 
+        void desasignar(int v) {
+            int d = deposito_de(v);
+            int d_fantasma = depositos();
+            
+            if(d != d_fantasma){ // Si no está en el fantasma
+                // Borrar v del deposito actual
+                auto it = std::find(_asignacion[d].begin(), _asignacion[d].end(), v); 
+                _asignacion[d].erase(it);
+                
+                // Asignar al fantasma
+                _asignacion[d_fantasma].push_back(v);
+    
+                _deposito_por_vendedor[v] = d_fantasma;
+    
+                _capacidades_remanentes[d] -= _instancia->demandas[d][v];
+                
+                costo = costo - costo_de(d, v) + costo_de(d_fantasma, v);
+            }
+        }
+
         void print() {
             for (int i = 0; i < _asignacion.size(); i++) {
                 std::cout << "[" << i << "]: ";
@@ -112,6 +135,19 @@ class Asignacion {
 
         bool operator>(const Asignacion& otro) const {
             return costo > otro.costo;
+        }
+
+        Asignacion& operator=(const Asignacion& otra) {
+            if (this == &otra) return *this; // evitar auto-asignación
+
+            // copiar miembros
+            this->costo = otra.costo;
+            this->_asignacion = otra._asignacion;
+            this->_capacidades_remanentes = otra._capacidades_remanentes;
+            this->_deposito_por_vendedor = otra._deposito_por_vendedor;
+            this->_instancia = otra._instancia;
+
+            return *this;
         }
 
         // Leer sobre la instancia
@@ -650,6 +686,31 @@ void busqueda_local_3(Asignacion & asig, int k = 100) {
     }
 }
 
+///////////////// METAHEURÍSTICA ///////////////
+
+// Perturbar la asignacion sacando k vendedores random
+void metauristica_1(Asignacion & asig, int k){
+    Asignacion copia_asig = asig;
+
+    // Elegir k vendedores aleatorios
+    std::mt19937 gen(SEMILLA);
+    std::uniform_int_distribution<int> dist(0, asig.vendedores()-1);
+
+    for (int i = 0; i < k; i++) {
+        int v_a_sacar = dist(gen);
+        copia_asig.desasignar(v_a_sacar);
+    }
+
+    busqueda_local_3(copia_asig);
+    busqueda_local_1(copia_asig);
+    busqueda_local_3(copia_asig);
+
+    std::cout << copia_asig.costo << std::endl;
+    if(copia_asig.costo < asig.costo){
+        asig = copia_asig;
+    }
+}
+
 
 int main(int argc, char** argv) {
     std::string filename = "instances/gap/gap_a/a05100";
@@ -689,9 +750,7 @@ int main(int argc, char** argv) {
     asignacion.print();
     std::cout << asignacion.costo << std::endl;
 
-    busqueda_local_1(asignacion);
-    busqueda_local_2(asignacion);
-    busqueda_local_3(asignacion);
+    metauristica_1(asignacion, 10);
 
     std::cout << asignacion.costo << std::endl;
     return 0;
