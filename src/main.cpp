@@ -525,6 +525,65 @@ Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
     return asignacion;
 }
 
+/////////////////// HEURISTICA 3 ////////////////////////
+
+// Armar lista de demandas por vendedor. (demanda[v][d] es el ratio c/u del vendedor v a ir al deposito d)
+std::vector<std::vector<float>> lista_de_demandas(const GAPInstance & inst) {
+    std::vector<std::vector<float>> demandas = {};
+    for (int v = 0; v < inst.n; v++){
+        std::vector<float> demanda_v = {};
+        for(int d = 0; d < inst.m; d++){
+            demanda_v.push_back(inst.demandas[d][v]);
+        }
+        demandas.push_back(demanda_v);
+    }
+    return demandas;
+}
+
+float promedio(const std::vector<float> & v) {
+    return std::accumulate(v.begin(), v.end(), 0.0f) / v.size();
+}
+
+std::vector<std::pair<int, float>> calcular_promedios(const std::vector<std::vector<float>> & vec) {
+    std::vector<std::pair<int, float>> promedios = {};
+    for(int i = 0; i < vec.size(); i++) {
+        std::pair<int, float> elem = {i, promedio(vec[i])};
+        promedios.push_back(elem);
+    }
+    return promedios;
+}
+
+Asignacion heuristica_3(GAPInstance & inst) {
+    Asignacion asignacion = Asignacion(inst);
+
+    std::vector<std::vector<float>> demandas = lista_de_demandas(inst);
+
+    std::vector<std::pair<int, float>> promedios = calcular_promedios(demandas);
+    ordenar_pairs(promedios);
+
+    int asignados = 0;
+    while (asignados < inst.n) {
+        std::pair<int, float> sig = promedios[promedios.size() - asignados - 1]; // Asginamos el que tiene mayor demanda en promedio
+        int vendedor = sig.first;
+        int deposito = min_valido(vendedor, demandas[vendedor], inst);
+        asignacion.asignar(deposito, vendedor);
+
+        if(deposito != inst.m) {
+            inst.capacidades[deposito] -= inst.demandas[deposito][vendedor];
+            
+            // si lo sature al deposito -> recalculo varianzas
+            // Podriamos ver el min tambien
+            //     if(inst.capacidades[deposito] == 0) { TIENE SENTIDO???
+            //         recalcular_varianzas(varianazs)
+            //     }
+        }
+
+        asignados++;
+    }
+    
+    return asignacion;
+}
+
 ///////////////// BUSQUEDA LOCAL SWAP CORRIENDO SOLAMENTE CON EL MEJOR DEPOSITO ///////////////
 void busqueda_local_1bis(Asignacion & asig) {
     for(int v1 = 0; v1 < asig.vendedores(); v1++){
@@ -705,7 +764,6 @@ void metauristica_1(Asignacion & asig, int k){
     busqueda_local_1(copia_asig);
     busqueda_local_3(copia_asig);
 
-    std::cout << copia_asig.costo << std::endl;
     if(copia_asig.costo < asig.costo){
         asig = copia_asig;
     }
@@ -722,8 +780,10 @@ int main(int argc, char** argv) {
             heuristica = 1;
         else if (arg == "--heuristica-2")
             heuristica = 2;
+        else if (arg == "--heuristica-3")
+            heuristica = 3;
         else if (arg.substr(0, 2) == "--") {
-            std::cerr << "Argumento inválido: " << arg << ". Usar --heuristica-1 o --heuristica-2." << std::endl;
+            std::cerr << "Argumento inválido: " << arg << ". Usar --heuristica-1, --heuristica-2 o --heuristica-3." << std::endl;
             return 1;
         } else
             filename = arg;
@@ -742,14 +802,17 @@ int main(int argc, char** argv) {
         asignacion = heuristica_1(inst);
     else if (heuristica == 2)
         asignacion = heuristica_2(inst);
+    else if (heuristica == 3)
+        asignacion = heuristica_3(inst);
     else {
-        std::cerr << "Heurística inválida. Usar --heuristica-1 o --heuristica-2" << std::endl;
+        std::cerr << "Heurística inválida. Usar --heuristica-1, --heuristica-2 o --heuristica-3." << std::endl;
         return 1;
     }
 
     asignacion.print();
     std::cout << asignacion.costo << std::endl;
 
+    busqueda_local_3(asignacion);
     metauristica_1(asignacion, 10);
 
     std::cout << asignacion.costo << std::endl;
