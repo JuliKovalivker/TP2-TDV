@@ -541,6 +541,8 @@ std::pair<int,int> dos_mas_baratos(std::vector<int> lista_de_vendedores, int dep
 }
 
 void busqueda_local_2_aux(Asignacion & asig){
+    int best_costo = asig.costo;
+    std::vector<int> best = {-1,-1,-1,-1}; 
     for(int d1 = 0; d1 <= asig.depositos(); d1++){
         for(int d2 = d1+1; d2 <= asig.depositos(); d2++) {
             std::vector<int> lista_de_vendedores_1 = asig.vendedores_de(d1);
@@ -560,13 +562,20 @@ void busqueda_local_2_aux(Asignacion & asig){
                 int v21 = mejores_2.first;
                 int v22 = mejores_2.second;
                 int costo_nuevo = asig.costo - asig.costo_de(d1, v11) - asig.costo_de(d1, v12) - asig.costo_de(d2, v21) - asig.costo_de(d2, v22) + asig.costo_de(d1, v21) + asig.costo_de(d1, v22) + asig.costo_de(d2, v11) + asig.costo_de(d2, v12);
-                if(costo_nuevo < asig.costo){
-                    asig.swap(v11,v21);
-                    asig.swap(v12,v22);
+                if(costo_nuevo < best_costo){
+                    best[0] = v11;
+                    best[1] = v21;
+                    best[2] = v12;
+                    best[3] = v22;
+                    best_costo = costo_nuevo;
                 }
             }
         }
     }
+    if(best_costo < asig.costo){
+        asig.swap(best[0],best[1]);
+        asig.swap(best[2],best[3]);
+    } 
 }
 
 void busqueda_local_2(Asignacion & asig, int k = 100) {
