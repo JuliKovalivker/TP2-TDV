@@ -6,14 +6,14 @@
 
 class Solver {
     public:
-        Solver(GAPInstance& inst);
+        Solver(const GAPInstance& inst);
 
         enum class Heuristica { VARIANZAS, DEPOSITOS, DEMANDAS };
 
         Asignacion solve(Heuristica h);
 
     private:
-        GAPInstance* _instancia;
+        const GAPInstance* _instancia;
 
         // Heuristicas
         Asignacion heuristica_varianzas();

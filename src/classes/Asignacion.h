@@ -9,7 +9,7 @@ class Asignacion {
     public:
         // CONSTRUCTORES
         Asignacion();
-        Asignacion(GAPInstance* inst);
+        Asignacion(const GAPInstance* inst);
 
         double costo;
 
@@ -49,7 +49,7 @@ class Asignacion {
         void guardar_en_archivo() const;
 
     private:
-        GAPInstance* _instancia;
+        const GAPInstance* _instancia;
         std::vector<std::vector<int>> _asignacion;
         std::vector<int> _deposito_por_vendedor;
         std::vector<float> _capacidades_remanentes;

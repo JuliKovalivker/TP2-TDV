@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-Solver::Solver(GAPInstance& inst) : _instancia(&inst) {}
+Solver::Solver(const GAPInstance& inst) : _instancia(&inst) {}
 
 Asignacion Solver::solve(Heuristica h) {
     Asignacion res;

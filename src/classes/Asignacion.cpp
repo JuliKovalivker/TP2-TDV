@@ -6,7 +6,7 @@
 
 Asignacion::Asignacion() : _instancia(nullptr) {}
 
-Asignacion::Asignacion(GAPInstance* inst) :
+Asignacion::Asignacion(const GAPInstance* inst) :
     _instancia(inst),
     _deposito_por_vendedor(inst->n, -1)  // n -1 (ninguno esta asignado)
 {
