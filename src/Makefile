@@ -1,7 +1,7 @@
 CC = g++
-CFLAGS = -std=c++17
-SRC = main.cpp
-OBJ = $(SRC:.cpp=.o)
+CFLAGS = -std=c++17 -IClasses
+SRC = main.cpp classes/GAPInstance.cpp classes/Asignacion.cpp
+OBJ = $(patsubst %.cpp,build/%.o,$(SRC))
 EXEC = gap_simulator
 
 all: $(EXEC)
@@ -9,8 +9,9 @@ all: $(EXEC)
 $(EXEC): $(OBJ)
 	$(CC) $(OBJ) -o $(EXEC)
 
-%.o: %.cpp
+build/%.o: %.cpp
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) $(EXEC)
+	rm -rf build $(EXEC)

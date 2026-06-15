@@ -8,320 +8,25 @@
 #include <algorithm>
 #include <random>
 #include <stdexcept>
+#include "classes/GAPInstance.h"
+#include "classes/Asignacion.h"
 
 const int SEMILLA = 20;
-
-class GAPInstance {
-    public:
-        GAPInstance() {}
-        GAPInstance(const std::string& filename){leer_archivo(filename);}
-        int m; // depositos
-        int n; // vendedores
-
-        double costo_max;
-
-        std::vector<std::vector<double>> costos;     // c[i][j]: costo asignar al depósito i el vendedor j 
-        std::vector<std::vector<double>> demandas;   // d[i][j]: demanda de depósito i del vendedor j  
-        std::vector<double> capacidades;             // c[i]: capacidad del depósito j
-    
-    private:
-
-        void leer_archivo(const std::string& filename) {
-            std::ifstream file(filename);
-            if (!file.is_open()) {
-                throw std::runtime_error("No se pudo abrir el archivo: " + filename);
-            }
-
-            file >> m >> n;
-
-            // Reservar matrices m x n
-            costos.assign(m, std::vector<double>(n));
-            demandas.assign(m, std::vector<double>(n));
-            capacidades.resize(m);
-            
-            // Leer matriz de costos costos[i][j]: m filas, n columnas
-            for (int i = 0; i < m; i++)
-                for (int j = 0; j < n; j++) {
-                    file >> costos[i][j];
-                    if (costos[i][j] > costo_max)
-                        costo_max = costos[i][j];
-                }
-                
-            // Leer matriz de consumos demandas[i][j]: m filas, n columnas
-            for (int i = 0; i < m; i++)
-                for (int j = 0; j < n; j++)
-                    file >> demandas[i][j];
-
-            // Leer capacidades capacidades[i]: m valores
-            for (int i = 0; i < m; i++)
-                file >> capacidades[i];
-
-            if (file.fail() && !file.eof()) {
-                throw std::runtime_error("Error al leer el archivo: datos incompletos o malformados.");
-            }
-        }
-
-};
-
-// Modificar para agregar desde aca
-class Asignacion {
-    public:
-        Asignacion() : _instancia(nullptr) {}
-        
-        Asignacion(GAPInstance& inst) : 
-            _instancia(&inst),
-            _deposito_por_vendedor(inst.n, 0)  // n ceros
-        {
-            for(int j = 0; j < inst.m; j++){
-                _asignacion.push_back({});
-                _capacidades_remanentes.push_back(inst.capacidades[j]);
-            }
-            _asignacion.push_back({}); // Agregar deposito fantasma
-            costo = 0;
-        }
-        
-        double costo;
-
-        void asignar(int d, int v) {
-            _asignacion[d].push_back(v);
-            _deposito_por_vendedor[v] = d;
-
-            // Si no es el depósito fantasma
-            if (d < _instancia->m) {
-                _capacidades_remanentes[d] -= _instancia->demandas[d][v];
-            }
-            costo += costo_de(d, v);
-        }
-
-        void desasignar(int v) {
-            int d = deposito_de(v);
-            int d_fantasma = depositos();
-            
-            if(d != d_fantasma){ // Si no está en el fantasma
-                // Borrar v del deposito actual
-                auto it = std::find(_asignacion[d].begin(), _asignacion[d].end(), v); 
-                _asignacion[d].erase(it);
-                
-                // Asignar al fantasma
-                _asignacion[d_fantasma].push_back(v);
-    
-                _deposito_por_vendedor[v] = d_fantasma;
-    
-                _capacidades_remanentes[d] -= _instancia->demandas[d][v];
-                
-                costo = costo - costo_de(d, v) + costo_de(d_fantasma, v);
-            }
-        }
-
-        void print() {
-            for (int i = 0; i < _asignacion.size(); i++) {
-                std::cout << "[" << i << "]: ";
-                for (int j = 0; j < _asignacion[i].size(); j++) {
-                    std::cout << _asignacion[i][j];
-                    if (j < _asignacion[i].size() - 1) std::cout << ", ";
-                }
-                std::cout << "\n";
-            }
-        }
-
-
-        bool operator==(const Asignacion& otro) const {
-            return costo == otro.costo;
-        }
-
-        bool operator<(const Asignacion& otro) const {
-            return costo < otro.costo;
-        }
-
-        bool operator>(const Asignacion& otro) const {
-            return costo > otro.costo;
-        }
-
-        Asignacion& operator=(const Asignacion& otra) {
-            if (this == &otra) return *this; // evitar auto-asignación
-
-            // copiar miembros
-            this->costo = otra.costo;
-            this->_asignacion = otra._asignacion;
-            this->_capacidades_remanentes = otra._capacidades_remanentes;
-            this->_deposito_por_vendedor = otra._deposito_por_vendedor;
-            this->_instancia = otra._instancia;
-
-            return *this;
-        }
-
-        // Leer sobre la instancia
-        int vendedores() {
-            return _instancia->n;
-        }
-        
-        int depositos() {
-            return _instancia->m;
-        }
-
-        int deposito_de(int vendedor) {
-            return _deposito_por_vendedor[vendedor];
-        }
-
-        std::vector<int>& vendedores_de(int deposito) {
-            return _asignacion[deposito];
-        }
-
-        int costo_de(int deposito, int vendedor) const {
-            if(!es_deposito_fantasma(deposito)){
-                return _instancia->costos[deposito][vendedor];
-            }
-            return _instancia->costo_max*3;
-        }
-
-        int demanda_de(int deposito, int vendedor) const {
-            if(es_deposito_fantasma(deposito)){
-                return 0;
-            }
-            return _instancia->demandas[deposito][vendedor];
-        }
-
-        int capacidad_remanente(int deposito) {
-            return _capacidades_remanentes[deposito];
-        }
-
-        bool es_deposito_fantasma(int deposito) const {
-            return deposito == _instancia->m;
-        }
-
-        bool es_factible_swap(int v1, int v2) {
-            int d1 = deposito_de(v1);
-            int d2 = deposito_de(v2);
-
-            if(d1 == d2) return true; // si ya estan en el mismo, siempre puedo swapear
-            
-            // si d1 es fantasma
-            if(es_deposito_fantasma(d1)) {
-                int c2 = capacidad_remanente(d2);
-                return c2 - _instancia->demandas[d2][v2] >= _instancia->demandas[d2][v1];
-            }
-            else if(es_deposito_fantasma(d2)) {
-                int c1 = capacidad_remanente(d1);
-                return c1 - _instancia->demandas[d1][v1] >= _instancia->demandas[d1][v2];
-            } else {
-                int c1 = capacidad_remanente(d1);
-                int c2 = capacidad_remanente(d2);
-    
-                return c1 - _instancia->demandas[d1][v1] >= _instancia->demandas[d1][v2] && c2 - _instancia->demandas[d2][v2] >= _instancia->demandas[d2][v1];
-            }
-        }
-
-        // PRE: v1 y v2 contienen 2 vendedores de un mismo depósito.
-        bool es_factible_2swap(std::pair<int, int> v1, std::pair<int, int> v2) {
-            // del primer deposito
-            int v11 = v1.first;
-            int v12 = v1.second;
-            
-            // del segundo deposito
-            int v21 = v2.first;
-            int v22 = v2.second;
-
-            int d1 = deposito_de(v11);
-            int d2 = deposito_de(v21);
-
-            if(d1 == d2) return true; // si ya estan en el mismo, siempre puedo swapear
-            
-            // si d1 es fantasma
-            if(es_deposito_fantasma(d1)) {
-                int c2 = capacidad_remanente(d2);
-                return c2 - _instancia->demandas[d2][v21] - _instancia->demandas[d2][v22] >= _instancia->demandas[d2][v11] + _instancia->demandas[d2][v12];
-            }
-            else if(es_deposito_fantasma(d2)) {
-                int c1 = capacidad_remanente(d1);
-                return  c1 - _instancia->demandas[d1][v11] - _instancia->demandas[d1][v12]  >= _instancia->demandas[d1][v21] + _instancia->demandas[d1][v22];
-            } else {
-                int c1 = capacidad_remanente(d1);
-                int c2 = capacidad_remanente(d2);
-                
-                return c1 - _instancia->demandas[d1][v11] - _instancia->demandas[d1][v12]  >= _instancia->demandas[d1][v21] + _instancia->demandas[d1][v22] && c2 - _instancia->demandas[d2][v21] - _instancia->demandas[d2][v22] >= _instancia->demandas[d2][v11] + _instancia->demandas[d2][v12];
-            }
-        }
-
-        // Mandar v1 al deposito de v2 y viceversa
-        void swap(int v1, int v2) {
-            int d1 = deposito_de(v1);
-            int d2 = deposito_de(v2);
-            if(d1 != d2) {
-                costo = costo - costo_de(d1,v1) - costo_de(d2, v2) + costo_de(d1, v2) + costo_de(d2, v1);
-                _deposito_por_vendedor[v1] = d2;
-                _deposito_por_vendedor[v2] = d1;
-    
-                auto it1 = std::find(_asignacion[d1].begin(), _asignacion[d1].end(), v1); 
-                auto it2 = std::find(_asignacion[d2].begin(), _asignacion[d2].end(), v2); 
-    
-                if (it1 != _asignacion[d1].end() && it2 != _asignacion[d2].end()){
-                    *it1 = v2;
-                    *it2 = v1;
-                }
-                if(!es_deposito_fantasma(d1)) {
-                    _capacidades_remanentes[d1] += _instancia->demandas[d1][v1] -  _instancia->demandas[d1][v2];
-                }
-                if(!es_deposito_fantasma(d2)){
-                    _capacidades_remanentes[d2] += _instancia->demandas[d2][v2] -  _instancia->demandas[d2][v1];
-                }
-            }
-        }
-
-        // Mandar v al deposito d
-        void relocate(int d, int v) {
-            int d_actual = deposito_de(v);
-            if(d_actual != d) {
-                costo = costo - costo_de(d_actual,v) + costo_de(d, v);
-                _deposito_por_vendedor[v] = d;
-                
-                // Borrar v del deposito actual
-                auto it = std::find(_asignacion[d_actual].begin(), _asignacion[d_actual].end(), v); 
-                _asignacion[d_actual].erase(it);
-                
-                _asignacion[d].push_back(v);
-
-                if(!es_deposito_fantasma(d)) {
-                    _capacidades_remanentes[d] -=  _instancia->demandas[d][v];
-                }
-                if(!es_deposito_fantasma(d_actual)){
-                    _capacidades_remanentes[d_actual] += _instancia->demandas[d_actual][v];
-                }
-            }
-        }
-
-        // O(m)
-        int deposito_mas_barato(int v){
-            int deposito_actual = deposito_de(v);
-            int min = 0;
-            for(int d = 0; d < depositos(); d++) {
-                if (costo_de(min,v) > costo_de(d,v) && d != deposito_actual){
-                    min = d;
-                }
-            }
-            return min;
-        }
-
-    private:
-        GAPInstance* _instancia; 
-        std::vector<std::vector<int>> _asignacion;
-        std::vector<int> _deposito_por_vendedor;
-        std::vector<float> _capacidades_remanentes;
-};
 
 
 ///////////////////////////// HEURISTICA 1 ///////////////////////////
 
-// Armar lista de ratios por vendedor. (ratios[i][j] es el ratio c/u del vendedor i a ir al deposito j)
-std::vector<std::vector<float>> lista_de_ratios(const GAPInstance & inst) {
-    std::vector<std::vector<float>> ratios = {};
+// Armar lista de costos por vendedor. (lista[i][j] es el costo del vendedor i a ir al deposito j)
+std::vector<std::vector<float>> lista_de_costos(const GAPInstance & inst) {
+    std::vector<std::vector<float>> costos = {};
     for (int j = 0; j < inst.n; j++){
-        std::vector<float> ratio_j = {};
+        std::vector<float> costo_j = {};
         for(int i = 0; i < inst.m; i++){
-            ratio_j.push_back(inst.costos[i][j]); // SI NO MIRAMOS RATIO ES MUCHO MEJOR
+            costo_j.push_back(inst.costos[i][j]);
         }
-        ratios.push_back(ratio_j);
+        costos.push_back(costo_j);
     }
-    return ratios;
+    return costos;
 }
 
 // Function to calculate standard deviation
@@ -407,37 +112,33 @@ void ordenar_pairs(std::vector<std::pair<int, T>>& vec) {
     }
 }
 
-bool esFactible(const int vendedor, const int deposito, const GAPInstance & inst){
-    return inst.capacidades[deposito] >= inst.demandas[deposito][vendedor];
-}
-
 // Devuelve la posicion del deposito con menor ratio c/u
 // Sino hay ninguno factible, devuelve m+1 (deposito fantasma)
-int min_valido(const int sig, const std::vector<float> & ratios, const GAPInstance & inst){
+int min_valido(const int sig, const std::vector<float> & costos, const Asignacion & asig){
     int deposito_min = -1;
-    for(int d = 0; d < ratios.size(); d++) {
-        if(esFactible(sig, d, inst)) {
+    for(int d = 0; d < costos.size(); d++) {
+        if(asig.hay_lugar(d, sig)) {
             if(deposito_min == -1) deposito_min = d; // Busco un primer factible
-            else if(ratios[deposito_min] > ratios[d]) deposito_min = d;
+            else if(costos[deposito_min] > costos[d]) deposito_min = d;
         }
     }
-    if(deposito_min == -1) return inst.m;
+    if(deposito_min == -1) return asig.depositos();
     return deposito_min;
 }
 
 Asignacion heuristica_1(GAPInstance & inst) {
     Asignacion asignacion = Asignacion(inst);
 
-    std::vector<std::vector<float>> ratios = lista_de_ratios(inst);
+    std::vector<std::vector<float>> costos = lista_de_costos(inst);
 
-    std::vector<std::pair<int, float>> varianzas = calcular_varianzas(ratios);
+    std::vector<std::pair<int, float>> varianzas = calcular_varianzas(costos);
     ordenar_pairs(varianzas);
 
     int asignados = 0;
     while (asignados < inst.n) {
         std::pair<int, float> sig = varianzas[varianzas.size() - asignados - 1]; // Asginamos el de mayor varianza
         int vendedor = sig.first;
-        int deposito = min_valido(vendedor, ratios[vendedor], inst);
+        int deposito = min_valido(vendedor, costos[vendedor], asignacion);
         asignacion.asignar(deposito, vendedor);
 
         if(deposito != inst.m) {
@@ -473,10 +174,10 @@ std::vector<std::vector<float>> lista_de_ratios_por_deposito(const GAPInstance &
 
 // Devuelve la posicion del vendedor con menor ratio c/u
 // Sino hay ninguno factible, devuelve -1 
-int mejor_valido(const std::vector<float> & ratios, const int deposito, const GAPInstance & inst, const std::vector<bool> & vendedores_ocupados){
+int mejor_valido(const std::vector<float> & ratios, const int deposito, const Asignacion & asig, const std::vector<bool> & vendedores_ocupados){
     int vendedor_min = -1;
     for(int v = 0; v < ratios.size(); v++) {
-        if(esFactible(v, deposito, inst) && !vendedores_ocupados[v]) {
+        if(asig.hay_lugar(deposito, v) && !vendedores_ocupados[v]) {
             if(vendedor_min == -1) vendedor_min = v; // Busco un primer factible
             else if(ratios[vendedor_min] > ratios[v]) vendedor_min = v;
         }
@@ -505,7 +206,7 @@ Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
         cambie = false;
         for(int i = 0; i < inst.m; i++) {
             int d = depositos[i].first; // el siguiente deposito
-            int v = mejor_valido(ratios[d], d, inst, vendedores_ocupados);
+            int v = mejor_valido(ratios[d], d, asignacion, vendedores_ocupados);
             if(v != -1) {
                 asignacion.asignar(d,v);
                 inst.capacidades[d] -= inst.demandas[d][v];
@@ -527,7 +228,7 @@ Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
 
 /////////////////// HEURISTICA 3 ////////////////////////
 
-// Armar lista de demandas por vendedor. (demanda[v][d] es el ratio c/u del vendedor v a ir al deposito d)
+// Armar lista de demandas por vendedor. (demanda[v][d] la demanda del vendedor v a ir al deposito d)
 std::vector<std::vector<float>> lista_de_demandas(const GAPInstance & inst) {
     std::vector<std::vector<float>> demandas = {};
     for (int v = 0; v < inst.n; v++){
@@ -565,7 +266,7 @@ Asignacion heuristica_3(GAPInstance & inst) {
     while (asignados < inst.n) {
         std::pair<int, float> sig = promedios[promedios.size() - asignados - 1]; // Asginamos el que tiene mayor demanda en promedio
         int vendedor = sig.first;
-        int deposito = min_valido(vendedor, demandas[vendedor], inst);
+        int deposito = min_valido(vendedor, demandas[vendedor], asignacion);
         asignacion.asignar(deposito, vendedor);
 
         if(deposito != inst.m) {
@@ -748,7 +449,7 @@ void busqueda_local_3(Asignacion & asig, int k = 100) {
 ///////////////// METAHEURÍSTICA ///////////////
 
 // Perturbar la asignacion sacando k vendedores random
-void metauristica_1(Asignacion & asig, int k){
+void metaheuristica_1(Asignacion & asig, int k){
     Asignacion copia_asig = asig;
 
     // Elegir k vendedores aleatorios
@@ -813,7 +514,7 @@ int main(int argc, char** argv) {
     std::cout << asignacion.costo << std::endl;
 
     busqueda_local_3(asignacion);
-    metauristica_1(asignacion, 10);
+    metaheuristica_1(asignacion, 10);
 
     std::cout << asignacion.costo << std::endl;
     return 0;
