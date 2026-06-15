@@ -16,46 +16,33 @@ const int SEMILLA = 20;
 
 ///////////////////////////// HEURISTICA 1 ///////////////////////////
 
-// Armar lista de costos por vendedor. (lista[i][j] es el costo del vendedor i a ir al deposito j)
-std::vector<std::vector<float>> lista_de_costos(const GAPInstance & inst) {
-    std::vector<std::vector<float>> costos = {};
-    for (int j = 0; j < inst.n; j++){
-        std::vector<float> costo_j = {};
-        for(int i = 0; i < inst.m; i++){
-            costo_j.push_back(inst.costos[i][j]);
-        }
-        costos.push_back(costo_j);
-    }
-    return costos;
-}
-
 // Function to calculate standard deviation
-float varianza(const std::vector<float>& v) {
+double varianza(const std::vector<double>& v) {
     if (v.size() <= 1) {
         return 0.0; 
     }
 
     // 1. Calculate the mean using std::accumulate
-    float sum = std::accumulate(v.begin(), v.end(), 0.0);
-    float mean = sum / v.size();
+    double sum = std::accumulate(v.begin(), v.end(), 0.0);
+    double mean = sum / v.size();
 
     // 2. Accumulate the squared differences from the mean
-    float variance_sum = 0.0;
-    for (float val : v) {
+    double variance_sum = 0.0;
+    for (double val : v) {
         variance_sum += (val - mean) * (val - mean);
     }
 
-    float divisor = v.size() - 1;
+    double divisor = v.size() - 1;
 
     // 4. Return the square root of the variance
     return variance_sum / divisor;
 }
 
 // Calcular cuanto varía el ratio de cada vendedor
-std::vector<std::pair<int, float>> calcular_varianzas(const std::vector<std::vector<float>> & ratios) {
-    std::vector<std::pair<int, float>> varianzas = {};
+std::vector<std::pair<int, double>> calcular_varianzas(const std::vector<std::vector<double>> & ratios) {
+    std::vector<std::pair<int, double>> varianzas = {};
     for(int i = 0; i < ratios.size(); i++) {
-        std::pair<int, float> elem = {i, varianza(ratios[i])};
+        std::pair<int, double> elem = {i, varianza(ratios[i])};
         varianzas.push_back(elem);
     }
     return varianzas;
@@ -114,9 +101,9 @@ void ordenar_pairs(std::vector<std::pair<int, T>>& vec) {
 
 // Devuelve la posicion del deposito con menor ratio c/u
 // Sino hay ninguno factible, devuelve m+1 (deposito fantasma)
-int min_valido(const int sig, const std::vector<float> & costos, const Asignacion & asig){
+int min_valido(const int sig, const std::vector<double> & costos, const Asignacion & asig){
     int deposito_min = -1;
-    for(int d = 0; d < costos.size(); d++) {
+    for(int d = 0; d < asig.depositos(); d++) {
         if(asig.hay_lugar(d, sig)) {
             if(deposito_min == -1) deposito_min = d; // Busco un primer factible
             else if(costos[deposito_min] > costos[d]) deposito_min = d;
@@ -129,27 +116,23 @@ int min_valido(const int sig, const std::vector<float> & costos, const Asignacio
 Asignacion heuristica_1(GAPInstance & inst) {
     Asignacion asignacion = Asignacion(inst);
 
-    std::vector<std::vector<float>> costos = lista_de_costos(inst);
+    std::vector<std::vector<double>> costos = inst.costos_por_vendedor;
 
-    std::vector<std::pair<int, float>> varianzas = calcular_varianzas(costos);
+    std::vector<std::pair<int, double>> varianzas = calcular_varianzas(costos);
     ordenar_pairs(varianzas);
 
     int asignados = 0;
     while (asignados < inst.n) {
-        std::pair<int, float> sig = varianzas[varianzas.size() - asignados - 1]; // Asginamos el de mayor varianza
+        std::pair<int, double> sig = varianzas[varianzas.size() - asignados - 1]; // Asginamos el de mayor varianza
         int vendedor = sig.first;
         int deposito = min_valido(vendedor, costos[vendedor], asignacion);
         asignacion.asignar(deposito, vendedor);
-
-        if(deposito != inst.m) {
-            inst.capacidades[deposito] -= inst.demandas[deposito][vendedor];
-            
-            // si lo sature al deposito -> recalculo varianzas
-            // Podriamos ver el min tambien
-            //     if(inst.capacidades[deposito] == 0) { TIENE SENTIDO???
-            //         recalcular_varianzas(varianazs)
-            //     }
-        }
+        
+        // si lo sature al deposito -> recalculo varianzas
+        // Podriamos ver el min tambien
+        //     if(inst.capacidades[deposito] == 0) { TIENE SENTIDO???
+        //         recalcular_varianzas(varianazs)
+        //     }
 
         asignados++;
     }
@@ -160,10 +143,10 @@ Asignacion heuristica_1(GAPInstance & inst) {
 ///////////////////////////// HEURISTICA 2 ///////////////////////////
 
 // Armar lista de ratios por vendedor. (ratios[i][j] es el ratio c/u del vendedor i a ir al deposito j)
-std::vector<std::vector<float>> lista_de_ratios_por_deposito(const GAPInstance & inst) {
-    std::vector<std::vector<float>> ratios = {};
+std::vector<std::vector<double>> lista_de_ratios_por_deposito(const GAPInstance & inst) {
+    std::vector<std::vector<double>> ratios = {};
     for (int i = 0; i < inst.m; i++){
-        std::vector<float> ratio_i = {};
+        std::vector<double> ratio_i = {};
         for(int j = 0; j < inst.n; j++){
             ratio_i.push_back(inst.costos[i][j] / inst.demandas[i][j]);
         }
@@ -174,7 +157,7 @@ std::vector<std::vector<float>> lista_de_ratios_por_deposito(const GAPInstance &
 
 // Devuelve la posicion del vendedor con menor ratio c/u
 // Sino hay ninguno factible, devuelve -1 
-int mejor_valido(const std::vector<float> & ratios, const int deposito, const Asignacion & asig, const std::vector<bool> & vendedores_ocupados){
+int mejor_valido(const std::vector<double> & ratios, const int deposito, const Asignacion & asig, const std::vector<bool> & vendedores_ocupados){
     int vendedor_min = -1;
     for(int v = 0; v < ratios.size(); v++) {
         if(asig.hay_lugar(deposito, v) && !vendedores_ocupados[v]) {
@@ -189,7 +172,7 @@ int mejor_valido(const std::vector<float> & ratios, const int deposito, const As
 Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
     Asignacion asignacion = Asignacion(inst);
     
-    std::vector<std::vector<float>> ratios = lista_de_ratios_por_deposito(inst);
+    std::vector<std::vector<double>> ratios = lista_de_ratios_por_deposito(inst);
 
     // Depositos ordenados por capacidad (menor a mayor)
     std::vector<std::pair<int, int>> depositos = {};
@@ -228,27 +211,14 @@ Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
 
 /////////////////// HEURISTICA 3 ////////////////////////
 
-// Armar lista de demandas por vendedor. (demanda[v][d] la demanda del vendedor v a ir al deposito d)
-std::vector<std::vector<float>> lista_de_demandas(const GAPInstance & inst) {
-    std::vector<std::vector<float>> demandas = {};
-    for (int v = 0; v < inst.n; v++){
-        std::vector<float> demanda_v = {};
-        for(int d = 0; d < inst.m; d++){
-            demanda_v.push_back(inst.demandas[d][v]);
-        }
-        demandas.push_back(demanda_v);
-    }
-    return demandas;
-}
-
-float promedio(const std::vector<float> & v) {
+double promedio(const std::vector<double> & v) {
     return std::accumulate(v.begin(), v.end(), 0.0f) / v.size();
 }
 
-std::vector<std::pair<int, float>> calcular_promedios(const std::vector<std::vector<float>> & vec) {
-    std::vector<std::pair<int, float>> promedios = {};
+std::vector<std::pair<int, double>> calcular_promedios(const std::vector<std::vector<double>> & vec) {
+    std::vector<std::pair<int, double>> promedios = {};
     for(int i = 0; i < vec.size(); i++) {
-        std::pair<int, float> elem = {i, promedio(vec[i])};
+        std::pair<int, double> elem = {i, promedio(vec[i])};
         promedios.push_back(elem);
     }
     return promedios;
@@ -257,27 +227,17 @@ std::vector<std::pair<int, float>> calcular_promedios(const std::vector<std::vec
 Asignacion heuristica_3(GAPInstance & inst) {
     Asignacion asignacion = Asignacion(inst);
 
-    std::vector<std::vector<float>> demandas = lista_de_demandas(inst);
+    std::vector<std::vector<double>> demandas = inst.demandas_por_vendedor;
 
-    std::vector<std::pair<int, float>> promedios = calcular_promedios(demandas);
+    std::vector<std::pair<int, double>> promedios = calcular_promedios(demandas);
     ordenar_pairs(promedios);
-
+   
     int asignados = 0;
     while (asignados < inst.n) {
-        std::pair<int, float> sig = promedios[promedios.size() - asignados - 1]; // Asginamos el que tiene mayor demanda en promedio
+        std::pair<int, double> sig = promedios[promedios.size() - asignados - 1]; // Asginamos el que tiene mayor demanda en promedio
         int vendedor = sig.first;
         int deposito = min_valido(vendedor, demandas[vendedor], asignacion);
         asignacion.asignar(deposito, vendedor);
-
-        if(deposito != inst.m) {
-            inst.capacidades[deposito] -= inst.demandas[deposito][vendedor];
-            
-            // si lo sature al deposito -> recalculo varianzas
-            // Podriamos ver el min tambien
-            //     if(inst.capacidades[deposito] == 0) { TIENE SENTIDO???
-            //         recalcular_varianzas(varianazs)
-            //     }
-        }
 
         asignados++;
     }
@@ -469,7 +429,6 @@ void metaheuristica_1(Asignacion & asig, int k){
         asig = copia_asig;
     }
 }
-
 
 int main(int argc, char** argv) {
     std::string filename = "instances/gap/gap_a/a05100";

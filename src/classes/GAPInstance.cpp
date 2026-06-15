@@ -2,6 +2,8 @@
 #include <fstream>
 #include <stdexcept>
 
+#include <iostream>
+
 GAPInstance::GAPInstance(const std::string& filename) {
     leer_archivo(filename);
 }
@@ -16,21 +18,31 @@ void GAPInstance::leer_archivo(const std::string& filename) {
 
     // Reservar matrices m x n
     costos.assign(m, std::vector<double>(n));
+    costos_por_vendedor.assign(n, std::vector<double>(m));
+    
     demandas.assign(m, std::vector<double>(n));
+    demandas_por_vendedor.assign(n, std::vector<double>(m));
+    
     capacidades.resize(m);
+  
+    costo_max = 0;
 
     // Leer matriz de costos costos[i][j]: m filas, n columnas
-    for (int i = 0; i < m; i++)
-        for (int j = 0; j < n; j++) {
-            file >> costos[i][j];
-            if (costos[i][j] > costo_max)
-                costo_max = costos[i][j];
+    for (int d = 0; d < m; d++) {
+        for (int v = 0; v < n; v++) {
+            file >> costos[d][v];
+            costos_por_vendedor[v][d] = costos[d][v];
+            if (costos[d][v] > costo_max)
+                costo_max = costos[d][v];
         }
-
+    }
     // Leer matriz de consumos demandas[i][j]: m filas, n columnas
-    for (int i = 0; i < m; i++)
-        for (int j = 0; j < n; j++)
-            file >> demandas[i][j];
+    for (int d = 0; d < m; d++) {
+        for (int v = 0; v < n; v++){
+            file >> demandas[d][v];
+            demandas_por_vendedor[v][d] = demandas[d][v];
+        }
+    }
 
     // Leer capacidades capacidades[i]: m valores
     for (int i = 0; i < m; i++)

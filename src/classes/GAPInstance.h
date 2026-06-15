@@ -14,9 +14,13 @@ class GAPInstance {
 
         double costo_max;
 
-        std::vector<std::vector<double>> costos;     // c[i][j]: costo asignar al depósito i el vendedor j
-        std::vector<std::vector<double>> demandas;   // d[i][j]: demanda de depósito i del vendedor j
-        std::vector<double> capacidades;             // c[i]: capacidad del depósito j
+        std::vector<std::vector<double>> costos;                // c[d][v]: costo asignar al depósito d el vendedor v
+        std::vector<std::vector<double>> costos_por_vendedor;   // c[v][d] costo de asignar el vendedor v al depósito d
+
+        std::vector<std::vector<double>> demandas;              // d[d][v]: demanda de depósito d del vendedor v
+        std::vector<std::vector<double>> demandas_por_vendedor; // d[v][d] demanda del vendedor v al depósito d
+
+        std::vector<double> capacidades;                        // c[d]: capacidad del depósito d
 
     private:
         void leer_archivo(const std::string& filename);
