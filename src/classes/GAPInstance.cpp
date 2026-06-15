@@ -2,8 +2,6 @@
 #include <fstream>
 #include <stdexcept>
 
-#include <iostream>
-
 GAPInstance::GAPInstance(const std::string& filename) {
     leer_archivo(filename);
 }

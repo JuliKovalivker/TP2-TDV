@@ -10,94 +10,12 @@
 #include <stdexcept>
 #include "classes/GAPInstance.h"
 #include "classes/Asignacion.h"
+#include "utils/utils.h"
 
 const int SEMILLA = 20;
 
 
 ///////////////////////////// HEURISTICA 1 ///////////////////////////
-
-// Function to calculate standard deviation
-double varianza(const std::vector<double>& v) {
-    if (v.size() <= 1) {
-        return 0.0; 
-    }
-
-    // 1. Calculate the mean using std::accumulate
-    double sum = std::accumulate(v.begin(), v.end(), 0.0);
-    double mean = sum / v.size();
-
-    // 2. Accumulate the squared differences from the mean
-    double variance_sum = 0.0;
-    for (double val : v) {
-        variance_sum += (val - mean) * (val - mean);
-    }
-
-    double divisor = v.size() - 1;
-
-    // 4. Return the square root of the variance
-    return variance_sum / divisor;
-}
-
-// Calcular cuanto varía el ratio de cada vendedor
-std::vector<std::pair<int, double>> calcular_varianzas(const std::vector<std::vector<double>> & ratios) {
-    std::vector<std::pair<int, double>> varianzas = {};
-    for(int i = 0; i < ratios.size(); i++) {
-        std::pair<int, double> elem = {i, varianza(ratios[i])};
-        varianzas.push_back(elem);
-    }
-    return varianzas;
-}
-
-
-template <typename T>
-void merge(std::vector<std::pair<int, T>>& v, int left, int mid, int right) {
-    int n1 = mid - left + 1;
-    int n2 = right - mid;
-
-    std::vector<std::pair<int, T>> L(n1);
-    std::vector<std::pair<int, T>> R(n2);
-
-    for (int i = 0; i < n1; i++)
-        L[i] = v[left + i];
-
-    for (int i = 0; i < n2; i++)
-        R[i] = v[mid + 1 + i];
-
-    int i = 0, j = 0, k = left;
-
-    while (i < n1 && j < n2) {
-        if (L[i].second <= R[j].second) {
-            v[k++] = L[i++];
-        } else {
-            v[k++] = R[j++];
-        }
-    }
-
-    while (i < n1)
-        v[k++] = L[i++];
-
-    while (j < n2)
-        v[k++] = R[j++];
-}
-
-template <typename T>
-void mergesort(std::vector<std::pair<int, T>>& v, int left, int right) {
-    if (left >= right) return;
-
-    int mid = left + (right - left) / 2;
-
-    mergesort(v, left, mid);
-    mergesort(v, mid + 1, right);
-
-    merge(v, left, mid, right);
-}
-
-template <typename T>
-void ordenar_pairs(std::vector<std::pair<int, T>>& vec) {
-    if (!vec.empty()) {
-        mergesort(vec, 0, vec.size() - 1);
-    }
-}
 
 // Devuelve la posicion del deposito con menor ratio c/u
 // Sino hay ninguno factible, devuelve m+1 (deposito fantasma)
@@ -175,7 +93,7 @@ Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
     std::vector<std::vector<double>> ratios = lista_de_ratios_por_deposito(inst);
 
     // Depositos ordenados por capacidad (menor a mayor)
-    std::vector<std::pair<int, int>> depositos = {};
+    std::vector<std::pair<int, double>> depositos = {};
     for(int i = 0; i < inst.m; i++){
         depositos.push_back(std::pair(i,inst.capacidades[i]));
     }
@@ -210,19 +128,6 @@ Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
 }
 
 /////////////////// HEURISTICA 3 ////////////////////////
-
-double promedio(const std::vector<double> & v) {
-    return std::accumulate(v.begin(), v.end(), 0.0f) / v.size();
-}
-
-std::vector<std::pair<int, double>> calcular_promedios(const std::vector<std::vector<double>> & vec) {
-    std::vector<std::pair<int, double>> promedios = {};
-    for(int i = 0; i < vec.size(); i++) {
-        std::pair<int, double> elem = {i, promedio(vec[i])};
-        promedios.push_back(elem);
-    }
-    return promedios;
-}
 
 Asignacion heuristica_3(GAPInstance & inst) {
     Asignacion asignacion = Asignacion(inst);
