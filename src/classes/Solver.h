@@ -8,15 +8,17 @@ class Solver {
     public:
         Solver(GAPInstance& inst);
 
-        Asignacion resolver();
+        enum class Heuristica { VARIANZAS, DEPOSITOS, DEMANDAS };
+
+        Asignacion solve(Heuristica h);
 
     private:
         GAPInstance* _instancia;
 
         // Heuristicas
-        Asignacion heuristica_varianzas(GAPInstance & inst);
-        Asignacion heuristica_depositos(GAPInstance & inst);
-        Asignacion heuristica_demandas(GAPInstance & inst);
+        Asignacion heuristica_varianzas();
+        Asignacion heuristica_depositos();
+        Asignacion heuristica_demandas();
 
         // Buqueda local
         template <typename Func>

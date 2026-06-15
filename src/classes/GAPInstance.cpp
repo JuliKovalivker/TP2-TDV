@@ -50,3 +50,15 @@ void GAPInstance::leer_archivo(const std::string& filename) {
         throw std::runtime_error("Error al leer el archivo: datos incompletos o malformados.");
     }
 }
+
+std::vector<std::vector<double>> GAPInstance::lista_de_ratios_por_deposito() const {
+    std::vector<std::vector<double>> ratios = {};
+    for (int i = 0; i < m; i++){
+        std::vector<double> ratio_i = {};
+        for(int j = 0; j < n; j++){
+            ratio_i.push_back(costos[i][j] / demandas[i][j]);
+        }
+        ratios.push_back(ratio_i);
+    }
+    return ratios;
+}

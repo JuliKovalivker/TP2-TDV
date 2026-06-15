@@ -5,13 +5,13 @@
 
 Asignacion::Asignacion() : _instancia(nullptr) {}
 
-Asignacion::Asignacion(GAPInstance& inst) :
-    _instancia(&inst),
-    _deposito_por_vendedor(inst.n, 0)  // n ceros
+Asignacion::Asignacion(GAPInstance* inst) :
+    _instancia(inst),
+    _deposito_por_vendedor(inst->n, -1)  // n -1 (ninguno esta asignado)
 {
-    for(int j = 0; j < inst.m; j++){
+    for(int j = 0; j < inst->m; j++){
         _asignacion.push_back({});
-        _capacidades_remanentes.push_back(inst.capacidades[j]);
+        _capacidades_remanentes.push_back(inst->capacidades[j]);
     }
     _asignacion.push_back({}); // Agregar deposito fantasma
     costo = 0;
@@ -239,4 +239,31 @@ int Asignacion::deposito_mas_barato(int v) const {
         }
     }
     return min;
+}
+
+// Devuelve la posicion del deposito factible con menor valor en en vec 
+// Si no hay ninguno factible, devuelve m+1 (deposito fantasma)
+int Asignacion::deposito_min_valido(int v, const std::vector<double> & vec) const {
+    int deposito_min = -1;
+    for(int d = 0; d < depositos(); d++) {
+        if(hay_lugar(d, v)) {
+            if(deposito_min == -1) deposito_min = d; // Busco un primer factible
+            else if(vec[deposito_min] > vec[d]) deposito_min = d;
+        }
+    }
+    if(deposito_min == -1) return depositos();
+    return deposito_min;
+}
+
+// Devuelve la posicion del vendedor con menor valor en vec, que entra en el deposito. 
+// Sino hay ninguno factible, devuelve -1 
+int Asignacion::vendedor_min_valido(int d, const std::vector<double> & vec) const {
+    int vendedor_min = -1;
+    for(int v = 0; v < vec.size(); v++) {
+        if(hay_lugar(d, v) && deposito_de(v) == -1) { // Entra y todavia no lo asigne.
+            if(vendedor_min == -1) vendedor_min = v; // Busco un primer factible
+            else if(vec[vendedor_min] > vec[v]) vendedor_min = v;
+        }
+    }
+    return vendedor_min;
 }

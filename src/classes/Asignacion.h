@@ -9,7 +9,7 @@ class Asignacion {
     public:
         // CONSTRUCTORES
         Asignacion();
-        Asignacion(GAPInstance& inst);
+        Asignacion(GAPInstance* inst);
 
         double costo;
 
@@ -42,6 +42,8 @@ class Asignacion {
         bool es_factible_2swap(std::pair<int, int> v1, std::pair<int, int> v2) const;
 
         int deposito_mas_barato(int v) const;
+        int deposito_min_valido(int v, const std::vector<double> & vec) const;
+        int vendedor_min_valido(int d, const std::vector<double> & vec) const;
 
         void print() const;
 

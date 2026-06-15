@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include "classes/GAPInstance.h"
 #include "classes/Asignacion.h"
+#include "classes/Solver.h"
 #include "utils/utils.h"
 
 const int SEMILLA = 20;
@@ -17,138 +18,97 @@ const int SEMILLA = 20;
 
 ///////////////////////////// HEURISTICA 1 ///////////////////////////
 
-// Devuelve la posicion del deposito con menor ratio c/u
-// Sino hay ninguno factible, devuelve m+1 (deposito fantasma)
-int min_valido(const int sig, const std::vector<double> & costos, const Asignacion & asig){
-    int deposito_min = -1;
-    for(int d = 0; d < asig.depositos(); d++) {
-        if(asig.hay_lugar(d, sig)) {
-            if(deposito_min == -1) deposito_min = d; // Busco un primer factible
-            else if(costos[deposito_min] > costos[d]) deposito_min = d;
-        }
-    }
-    if(deposito_min == -1) return asig.depositos();
-    return deposito_min;
-}
+// Asignacion heuristica_1(GAPInstance & inst) {
+//     Asignacion asignacion = Asignacion(inst);
 
-Asignacion heuristica_1(GAPInstance & inst) {
-    Asignacion asignacion = Asignacion(inst);
+//     std::vector<std::vector<double>> costos = inst.costos_por_vendedor;
 
-    std::vector<std::vector<double>> costos = inst.costos_por_vendedor;
+//     std::vector<std::pair<int, double>> varianzas = calcular_varianzas(costos);
+//     ordenar_pairs(varianzas);
 
-    std::vector<std::pair<int, double>> varianzas = calcular_varianzas(costos);
-    ordenar_pairs(varianzas);
-
-    int asignados = 0;
-    while (asignados < inst.n) {
-        std::pair<int, double> sig = varianzas[varianzas.size() - asignados - 1]; // Asginamos el de mayor varianza
-        int vendedor = sig.first;
-        int deposito = min_valido(vendedor, costos[vendedor], asignacion);
-        asignacion.asignar(deposito, vendedor);
+//     int asignados = 0;
+//     while (asignados < inst.n) {
+//         std::pair<int, double> sig = varianzas[varianzas.size() - asignados - 1]; // Asginamos el de mayor varianza
+//         int vendedor = sig.first;
+//         int deposito = asignacion.deposito_min_valido(vendedor, costos[vendedor]);
+//         asignacion.asignar(deposito, vendedor);
         
-        // si lo sature al deposito -> recalculo varianzas
-        // Podriamos ver el min tambien
-        //     if(inst.capacidades[deposito] == 0) { TIENE SENTIDO???
-        //         recalcular_varianzas(varianazs)
-        //     }
+//         // si lo sature al deposito -> recalculo varianzas
+//         // Podriamos ver el min tambien
+//         //     if(inst.capacidades[deposito] == 0) { TIENE SENTIDO???
+//         //         recalcular_varianzas(varianazs)
+//         //     }
 
-        asignados++;
-    }
+//         asignados++;
+//     }
     
-    return asignacion;
-}
+//     return asignacion;
+// }
 
 ///////////////////////////// HEURISTICA 2 ///////////////////////////
 
-// Armar lista de ratios por vendedor. (ratios[i][j] es el ratio c/u del vendedor i a ir al deposito j)
-std::vector<std::vector<double>> lista_de_ratios_por_deposito(const GAPInstance & inst) {
-    std::vector<std::vector<double>> ratios = {};
-    for (int i = 0; i < inst.m; i++){
-        std::vector<double> ratio_i = {};
-        for(int j = 0; j < inst.n; j++){
-            ratio_i.push_back(inst.costos[i][j] / inst.demandas[i][j]);
-        }
-        ratios.push_back(ratio_i);
-    }
-    return ratios;
-}
-
-// Devuelve la posicion del vendedor con menor ratio c/u
-// Sino hay ninguno factible, devuelve -1 
-int mejor_valido(const std::vector<double> & ratios, const int deposito, const Asignacion & asig, const std::vector<bool> & vendedores_ocupados){
-    int vendedor_min = -1;
-    for(int v = 0; v < ratios.size(); v++) {
-        if(asig.hay_lugar(deposito, v) && !vendedores_ocupados[v]) {
-            if(vendedor_min == -1) vendedor_min = v; // Busco un primer factible
-            else if(ratios[vendedor_min] > ratios[v]) vendedor_min = v;
-        }
-    }
-    return vendedor_min;
-}
-
-
-Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
-    Asignacion asignacion = Asignacion(inst);
+// Asignacion heuristica_2(GAPInstance & inst) { // PRIMERO DEPOSITOS
+    // Asignacion asignacion = Asignacion(inst);
     
-    std::vector<std::vector<double>> ratios = lista_de_ratios_por_deposito(inst);
+    // std::vector<std::vector<double>> ratios = inst.lista_de_ratios_por_deposito();
 
-    // Depositos ordenados por capacidad (menor a mayor)
-    std::vector<std::pair<int, double>> depositos = {};
-    for(int i = 0; i < inst.m; i++){
-        depositos.push_back(std::pair(i,inst.capacidades[i]));
-    }
-    ordenar_pairs(depositos);
+    // // Depositos ordenados por capacidad (menor a mayor)
+    // std::vector<std::pair<int, double>> depositos = {};
+    // for(int i = 0; i < inst.m; i++){
+    //     depositos.push_back(std::pair(i,inst.capacidades[i]));
+    // }
+    // ordenar_pairs(depositos);
 
-    std::vector<bool> vendedores_ocupados(inst.n, false);
-    int asignados = 0;
-    bool cambie = true;
+    // std::vector<bool> vendedores_ocupados(inst.n, false);
+    // int asignados = 0;
+    // bool cambie = true;
 
-    while (cambie && asignados != inst.n) {
-        cambie = false;
-        for(int i = 0; i < inst.m; i++) {
-            int d = depositos[i].first; // el siguiente deposito
-            int v = mejor_valido(ratios[d], d, asignacion, vendedores_ocupados);
-            if(v != -1) {
-                asignacion.asignar(d,v);
-                inst.capacidades[d] -= inst.demandas[d][v];
-                vendedores_ocupados[v] = true;
-                asignados++;
-                cambie = true;
-            }
-        }
-    }
+    // while (cambie && asignados != inst.n) {
+    //     cambie = false;
+    //     for(int i = 0; i < inst.m; i++) {
+    //         int d = depositos[i].first; // el siguiente deposito
+    //         int v = asignacion.vendedor_min_valido(d, ratios[d]);
+    //         if(v != -1) {
+    //             asignacion.asignar(d,v);
+    //             inst.capacidades[d] -= inst.demandas[d][v];
+    //             vendedores_ocupados[v] = true;
+    //             asignados++;
+    //             cambie = true;
+    //         }
+    //     }
+    // }
 
-    // Agregar los que quedaron afuera
-    std::vector<int> indices_falsos;
-    for (int i = 0; i < vendedores_ocupados.size(); i++) {
-        if (!vendedores_ocupados[i])
-        asignacion.asignar(inst.m, i);
-    }
-    return asignacion;
-}
+    // // Agregar los que quedaron afuera
+    // std::vector<int> indices_falsos;
+    // for (int i = 0; i < vendedores_ocupados.size(); i++) {
+    //     if (!vendedores_ocupados[i])
+    //     asignacion.asignar(inst.m, i);
+    // }
+    // return asignacion;
+// }
 
-/////////////////// HEURISTICA 3 ////////////////////////
+///////////////// HEURISTICA 3 ////////////////////////
 
-Asignacion heuristica_3(GAPInstance & inst) {
-    Asignacion asignacion = Asignacion(inst);
+// Asignacion heuristica_3(GAPInstance & inst) {
+//     Asignacion asignacion = Asignacion(&inst);
 
-    std::vector<std::vector<double>> demandas = inst.demandas_por_vendedor;
+//     std::vector<std::vector<double>> demandas = inst.demandas_por_vendedor;
 
-    std::vector<std::pair<int, double>> promedios = calcular_promedios(demandas);
-    ordenar_pairs(promedios);
+//     std::vector<std::pair<int, double>> promedios = calcular_promedios(demandas);
+//     ordenar_pairs(promedios);
    
-    int asignados = 0;
-    while (asignados < inst.n) {
-        std::pair<int, double> sig = promedios[promedios.size() - asignados - 1]; // Asginamos el que tiene mayor demanda en promedio
-        int vendedor = sig.first;
-        int deposito = min_valido(vendedor, demandas[vendedor], asignacion);
-        asignacion.asignar(deposito, vendedor);
+//     int asignados = 0;
+//     while (asignados < inst.n) {
+//         std::pair<int, double> sig = promedios[promedios.size() - asignados - 1]; // Asginamos el que tiene mayor demanda en promedio
+//         int vendedor = sig.first;
+//         int deposito = asignacion.deposito_min_valido(vendedor, demandas[vendedor]);
+//         asignacion.asignar(deposito, vendedor);
 
-        asignados++;
-    }
+//         asignados++;
+//     }
     
-    return asignacion;
-}
+//     return asignacion;
+// }
 
 ///////////////// BUSQUEDA LOCAL SWAP CORRIENDO SOLAMENTE CON EL MEJOR DEPOSITO ///////////////
 void busqueda_local_1bis(Asignacion & asig) {
@@ -361,14 +321,15 @@ int main(int argc, char** argv) {
     std::cout << "m (depósitos) = " << inst.m << std::endl;
     std::cout << "n (vendedores) = " << inst.n << std::endl;
 
+    Solver solver(inst);
     Asignacion asignacion;
 
     if (heuristica == 1)
-        asignacion = heuristica_1(inst);
+        asignacion = solver.solve(Solver::Heuristica::VARIANZAS);
     else if (heuristica == 2)
-        asignacion = heuristica_2(inst);
+        asignacion = solver.solve(Solver::Heuristica::DEPOSITOS);
     else if (heuristica == 3)
-        asignacion = heuristica_3(inst);
+        asignacion = solver.solve(Solver::Heuristica::DEMANDAS);
     else {
         std::cerr << "Heurística inválida. Usar --heuristica-1, --heuristica-2 o --heuristica-3." << std::endl;
         return 1;
@@ -378,7 +339,8 @@ int main(int argc, char** argv) {
     std::cout << asignacion.costo << std::endl;
 
     busqueda_local_3(asignacion);
-    metaheuristica_1(asignacion, 10);
+    metaheuristica_1(asignacion, 20);
+    busqueda_local_3(asignacion);
 
     std::cout << asignacion.costo << std::endl;
     return 0;

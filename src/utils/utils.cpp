@@ -7,11 +7,9 @@ double varianza(const std::vector<double>& v) {
         return 0.0; 
     }
 
-    // 1. Calculate the mean using std::accumulate
     double sum = std::accumulate(v.begin(), v.end(), 0.0);
     double mean = sum / v.size();
 
-    // 2. Accumulate the squared differences from the mean
     double variance_sum = 0.0;
     for (double val : v) {
         variance_sum += (val - mean) * (val - mean);
@@ -19,7 +17,6 @@ double varianza(const std::vector<double>& v) {
 
     double divisor = v.size() - 1;
 
-    // 4. Return the square root of the variance
     return variance_sum / divisor;
 }
 
@@ -58,7 +55,7 @@ void ordenar_pairs(std::vector<std::pair<int, double>>& vec) {
 void mergesort(std::vector<std::pair<int, double>>& v, int left, int right) {
     if (left >= right) return;
 
-    int mid = left + (right - left) / 2;
+    int mid = (right + left) / 2;
 
     mergesort(v, left, mid);
     mergesort(v, mid + 1, right);
