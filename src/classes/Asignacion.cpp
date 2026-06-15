@@ -2,6 +2,7 @@
 #include <numeric>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 Asignacion::Asignacion() : _instancia(nullptr) {}
 
@@ -57,6 +58,19 @@ void Asignacion::print() const {
         }
         std::cout << "\n";
     }
+}
+
+void Asignacion::guardar_en_archivo() const{
+    std::ofstream archivo("salida.txt");
+    for (int i = 0; i < _asignacion.size() -1; ++i){
+        const auto& fila = _asignacion[i];
+        for (int j = 0; j < fila.size(); ++j){
+            archivo << fila[j];
+            if (j + 1 < fila.size()) archivo << " ";
+        }
+        archivo << "\n";
+    }
+    archivo.close();
 }
 
 bool Asignacion::operator==(const Asignacion& otro) const {

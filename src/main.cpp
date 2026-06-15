@@ -248,5 +248,7 @@ int main(int argc, char** argv) {
     busqueda_local_3(asignacion);
 
     std::cout << asignacion.costo << std::endl;
+
+    asignacion.guardar_en_archivo();
     return 0;
 }

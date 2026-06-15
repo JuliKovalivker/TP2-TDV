@@ -46,6 +46,7 @@ class Asignacion {
         int vendedor_min_valido(int d, const std::vector<double> & vec) const;
 
         void print() const;
+        void guardar_en_archivo() const;
 
     private:
         GAPInstance* _instancia;
