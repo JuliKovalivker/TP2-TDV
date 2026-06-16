@@ -14,7 +14,11 @@ Asignacion Solver::solve(Heuristica h) {
         case Heuristica::DEMANDAS:  res = heuristica_demandas(); break;
         default: throw std::invalid_argument("Heuristica invalida");
     }
-
+    std::cout << res.costo << std::endl;
+    swap(res);
+    dos_swap(res);
+    relocate(res);
+    std::cout << res.costo << std::endl;
     return res;
 }
 
@@ -103,4 +107,136 @@ Asignacion Solver::heuristica_demandas() {
     }
     
     return asig;
+}
+
+////////////////////////// BUSQUEDA LOCAL //////////////////////////
+template <typename Func>
+void Solver::agotar_busqueda_local(Asignacion & asig, Func buqueda_local, int k){
+    int c1 = 0;
+    int c2 = 1;
+    for (int i = 0; i < k && c1 != c2; i++){
+        c1 = asig.costo;
+        buqueda_local(asig);
+        c2 = asig.costo;
+    }
+}
+
+void Solver::swap_aux(Asignacion & asig){
+    for(int v1 = 0; v1 < asig.vendedores(); v1++){
+        int d1 = asig.deposito_de(v1);
+
+        for(int d2 = 0; d2 <= asig.depositos(); d2++) { // incluye depósito "fantasma"
+            if(d1 == d2) continue;
+            std::vector<int> lista_de_vendedores = asig.vendedores_de(d2);
+
+            for(int i = 0; i < lista_de_vendedores.size(); i++) {
+                int v2 = lista_de_vendedores[i];
+                if(v1 != v2 && asig.es_factible_swap(v1,v2)){
+                    int costo_nuevo = asig.costo - asig.costo_de(d1,v1) - asig.costo_de(d2, v2) + asig.costo_de(d2, v1) + asig.costo_de(d1, v2);
+                    if(costo_nuevo < asig.costo) {
+                        asig.swap(v1,v2);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void Solver::swap(Asignacion & asig){
+    agotar_busqueda_local(asig, [this](Asignacion& a){ swap_aux(a); });
+}
+
+// 2-swap mas cercanos
+void Solver::dos_swap_aux(Asignacion & asig){
+    int best_costo = asig.costo;
+    std::vector<int> best = {-1,-1,-1,-1}; 
+    for(int d1 = 0; d1 <= asig.depositos(); d1++){
+        for(int d2 = d1+1; d2 <= asig.depositos(); d2++) {
+            std::vector<int> lista_de_vendedores_1 = asig.vendedores_de(d1);
+            std::vector<int> lista_de_vendedores_2 = asig.vendedores_de(d2);
+
+            if(lista_de_vendedores_1.size() <= 1 || lista_de_vendedores_2.size() <= 1) continue;
+
+            std::pair<int,int> mejores_1 = dos_mas_baratos(lista_de_vendedores_1, d2, asig);
+            std::pair<int,int> mejores_2 = dos_mas_baratos(lista_de_vendedores_2, d1, asig);
+
+            if(asig.es_factible_2swap(mejores_1, mejores_2)){
+                // del primer deposito
+                int v11 = mejores_1.first;
+                int v12 = mejores_1.second;
+                
+                // del segundo deposito
+                int v21 = mejores_2.first;
+                int v22 = mejores_2.second;
+                int costo_nuevo = asig.costo - asig.costo_de(d1, v11) - asig.costo_de(d1, v12) - asig.costo_de(d2, v21) - asig.costo_de(d2, v22) + asig.costo_de(d1, v21) + asig.costo_de(d1, v22) + asig.costo_de(d2, v11) + asig.costo_de(d2, v12);
+                if(costo_nuevo < best_costo){
+                    best[0] = v11;
+                    best[1] = v21;
+                    best[2] = v12;
+                    best[3] = v22;
+                    best_costo = costo_nuevo;
+                }
+            }
+        }
+    }
+    if(best_costo < asig.costo){
+        asig.swap(best[0],best[1]);
+        asig.swap(best[2],best[3]);
+    } 
+}
+
+void Solver::dos_swap(Asignacion & asig){
+    agotar_busqueda_local(asig, [this](Asignacion& a){ dos_swap_aux(a); });
+}
+
+void Solver::relocate_aux(Asignacion & asig) {
+    int best_costo = asig.costo;
+    std::vector<int> best = {-1,-1}; // best[0] es el deposito y best[1] es el vendedor
+
+    for (int v = 0; v < asig.vendedores(); v++){
+        int d_actual = asig.deposito_de(v);
+        for(int d = 0; d < asig.depositos(); d++){
+            if(d == d_actual) continue;
+            if(asig.capacidad_remanente(d) > asig.demanda_de(d, v)){
+                int costo_nuevo = asig.costo - asig.costo_de(d_actual, v) + asig.costo_de(d,v);
+                if(costo_nuevo < best_costo) {
+                    best_costo = costo_nuevo;
+                    best[0] = d;
+                    best[1] = v;
+                }
+            }
+        }
+    }
+    if(best_costo < asig.costo){
+        asig.relocate(best[0],best[1]);
+    } 
+}
+
+void Solver::relocate(Asignacion & asig) {
+    agotar_busqueda_local(asig, [this](Asignacion& a){ relocate_aux(a); });
+}
+
+///////////////////// AUXILIAR /////////////////////
+
+// PRE: lista_de_vendedores.size() > 1
+std::pair<int,int> Solver::dos_mas_baratos(std::vector<int> lista_de_vendedores, int deposito, const Asignacion & asig) const {
+    std::pair<int,int> res = {lista_de_vendedores[0],0}; // 2 mas baratos
+    for(int i = 0; i < lista_de_vendedores.size(); i++){
+        int v = lista_de_vendedores[i];
+        if(asig.costo_de(deposito, v) < asig.costo_de(deposito, res.first)) {
+            res.first = v;
+        }
+    }
+    
+    if(res.first != lista_de_vendedores[0]) res.second = lista_de_vendedores[0];
+    else res.second = lista_de_vendedores[1];
+
+    for(int i = 0; i < lista_de_vendedores.size(); i++){
+        int v = lista_de_vendedores[i];
+        if(v == res.first) continue;
+        if(asig.costo_de(deposito, v) < asig.costo_de(deposito, res.second)) {
+            res.second = v;
+        }
+    }
+    return res;
 }

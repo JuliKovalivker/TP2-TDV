@@ -241,11 +241,11 @@ int main(int argc, char** argv) {
     }
 
     asignacion.print();
-    std::cout << asignacion.costo << std::endl;
+    // std::cout << asignacion.costo << std::endl;
 
-    busqueda_local_3(asignacion);
-    metaheuristica_1(asignacion, 20);
-    busqueda_local_3(asignacion);
+    // busqueda_local_3(asignacion);
+    // metaheuristica_1(asignacion, 20);
+    // busqueda_local_3(asignacion);
 
     std::cout << asignacion.costo << std::endl;
 

@@ -21,12 +21,24 @@ class Solver {
         Asignacion heuristica_demandas();
 
         // Buqueda local
-        template <typename Func>
-        void agotar_busqueda_local(Asignacion & asig, Func buqueda_local, int k = 100);
-
+        
         void swap(Asignacion & asig);
         void dos_swap(Asignacion & asig);
         void relocate(Asignacion & asig);
+        
+        // Auxiliares que ejecutan 1 sola vez la búsqueda
+        
+        void swap_aux(Asignacion & asig);
+        void dos_swap_aux(Asignacion & asig);
+        void relocate_aux(Asignacion & asig);
+        
+
+        // Auxiliares
+        
+        template <typename Func>
+        void agotar_busqueda_local(Asignacion & asig, Func buqueda_local, int k = 100);
+        
+        std::pair<int,int> dos_mas_baratos(std::vector<int> lista_de_vendedores, int deposito, const Asignacion & asig) const;
 };
 
 #endif
