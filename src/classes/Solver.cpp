@@ -49,7 +49,6 @@ Asignacion Solver::heuristica_depositos() {
     Asignacion asig = Asignacion(_instancia);
     
     std::vector<std::vector<double>> ratios = _instancia->lista_de_ratios_por_deposito();
-    // std::vector<std::vector<double>> ratios = _instancia->costos_por_vendedor; ///////////////////////////////////////////////////////////////
 
     // Depositos ordenados por capacidad (menor a mayor)
     std::vector<std::pair<int, double>> depositos = {};
