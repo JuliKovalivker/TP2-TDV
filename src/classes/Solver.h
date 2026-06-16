@@ -16,9 +16,15 @@ class Solver {
         const GAPInstance* _instancia;
 
         // Heuristicas
+
         Asignacion heuristica_varianzas();
         Asignacion heuristica_depositos();
         Asignacion heuristica_demandas();
+
+        // Metaheuristica
+
+        // Perturbar la asignacion sacando k vendedores random
+        void metaheuristica(Asignacion & asig, int k);
 
         // Buqueda local
         

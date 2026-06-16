@@ -1,8 +1,7 @@
 #include "Solver.h"
 #include <stdexcept>
+#include <random>
 #include "../utils/utils.h"
-
-#include <iostream>
 
 Solver::Solver(const GAPInstance& inst) : _instancia(&inst) {}
 
@@ -14,13 +13,14 @@ Asignacion Solver::solve(Heuristica h) {
         case Heuristica::DEMANDAS:  res = heuristica_demandas(); break;
         default: throw std::invalid_argument("Heuristica invalida");
     }
-    std::cout << res.costo << std::endl;
-    swap(res);
-    dos_swap(res);
-    relocate(res);
-    std::cout << res.costo << std::endl;
+    // Podria ser un metodo aparte que optimice
+    metaheuristica(res, 5); // Por ahora hardcodeado 5
     return res;
 }
+
+/////////////////////////////////////////////////////////
+////////////////////// HEURÍSTICAS //////////////////////
+/////////////////////////////////////////////////////////
 
 Asignacion Solver::heuristica_varianzas() {
     Asignacion asig = Asignacion(_instancia);
@@ -109,7 +109,36 @@ Asignacion Solver::heuristica_demandas() {
     return asig;
 }
 
-////////////////////////// BUSQUEDA LOCAL //////////////////////////
+////////////////////////////////////////////////////////////
+////////////////////// METAHEURÍSTICA //////////////////////
+////////////////////////////////////////////////////////////
+
+void Solver::metaheuristica(Asignacion & asig, int k){
+    Asignacion copia_asig = asig;
+
+    // Elegir k vendedores aleatorios
+    const int SEMILLA = 20;
+    std::mt19937 gen(SEMILLA);
+    std::uniform_int_distribution<int> dist(0, asig.vendedores()-1);
+
+    for (int i = 0; i < k; i++) {
+        int v_a_sacar = dist(gen);
+        copia_asig.desasignar(v_a_sacar);
+    }
+
+    relocate(copia_asig);
+    swap(copia_asig);
+    relocate(copia_asig);
+
+    if(copia_asig.costo < asig.costo){
+        asig = copia_asig;
+    }
+}
+
+////////////////////////////////////////////////////////////
+////////////////////// BÚSQUEDA LOCAL //////////////////////
+////////////////////////////////////////////////////////////
+
 template <typename Func>
 void Solver::agotar_busqueda_local(Asignacion & asig, Func buqueda_local, int k){
     int c1 = 0;
@@ -216,7 +245,9 @@ void Solver::relocate(Asignacion & asig) {
     agotar_busqueda_local(asig, [this](Asignacion& a){ relocate_aux(a); });
 }
 
-///////////////////// AUXILIAR /////////////////////
+/////////////////////////////////////////////////////////
+////////////////////// AUXILIARES ///////////////////////
+/////////////////////////////////////////////////////////
 
 // PRE: lista_de_vendedores.size() > 1
 std::pair<int,int> Solver::dos_mas_baratos(std::vector<int> lista_de_vendedores, int deposito, const Asignacion & asig) const {
