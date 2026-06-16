@@ -22,7 +22,7 @@ class GAPInstance {
 
         std::vector<double> capacidades;                        // c[d]: capacidad del depósito d
 
-        // Armar lista de ratios por vendedor. (ratios[v][d] es el ratio c/u del vendedor v a ir al deposito d)
+        // Armar lista de ratios por vendedor. (ratios[d][v] es el ratio c/u del vendedor v a ir al deposito d)
         std::vector<std::vector<double>> lista_de_ratios_por_deposito() const;
     private:
         void leer_archivo(const std::string& filename);
