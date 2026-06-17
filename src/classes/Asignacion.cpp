@@ -88,7 +88,7 @@ bool Asignacion::operator>(const Asignacion& otro) const {
 Asignacion& Asignacion::operator=(const Asignacion& otra) {
     if (this == &otra) return *this; // evitar auto-asignación
 
-    // copiar miembros
+    // copiar atributos
     this->costo = otra.costo;
     this->_asignacion = otra._asignacion;
     this->_capacidades_remanentes = otra._capacidades_remanentes;
