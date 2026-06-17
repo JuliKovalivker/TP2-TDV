@@ -52,7 +52,7 @@ Asignacion Solver::heuristica_varianzas() {
 Asignacion Solver::heuristica_depositos() {
     Asignacion asig = Asignacion(_instancia);
     
-    std::vector<std::vector<double>> ratios = _instancia->costos;
+    std::vector<std::vector<double>> costos = _instancia->costos;
 
     // Depositos ordenados por capacidad (menor a mayor)
     std::vector<std::pair<int, double>> depositos = {};
@@ -69,7 +69,7 @@ Asignacion Solver::heuristica_depositos() {
         cambie = false;
         for(int i = 0; i < asig.depositos(); i++) {
             int d = depositos[i].first; // el siguiente deposito
-            int v = asig.vendedor_min_valido(d, ratios[d]);
+            int v = asig.vendedor_min_valido(d, costos[d]);
             if(v != -1) {
                 asig.asignar(d,v);
                 vendedores_ocupados[v] = true;
