@@ -35,7 +35,7 @@ void Asignacion::desasignar(int v) {
 
     if(d != d_fantasma){ // Si no está en el fantasma
         // Borrar v del deposito actual
-        auto it = std::find(_asignacion[d].begin(), _asignacion[d].end(), v);
+        auto it = std::find(_asignacion[d].begin(), _asignacion[d].end(), v); // O(N)
         _asignacion[d].erase(it);
 
         // Asignar al fantasma
@@ -197,6 +197,7 @@ bool Asignacion::es_factible_2swap(std::pair<int, int> v1, std::pair<int, int> v
 }
 
 // Mandar v1 al deposito de v2 y viceversa
+// PRE: vale es_factible_swap(v1, v2)
 void Asignacion::swap(int v1, int v2) {
     int d1 = deposito_de(v1);
     int d2 = deposito_de(v2);
@@ -205,8 +206,8 @@ void Asignacion::swap(int v1, int v2) {
         _deposito_por_vendedor[v1] = d2;
         _deposito_por_vendedor[v2] = d1;
 
-        auto it1 = std::find(_asignacion[d1].begin(), _asignacion[d1].end(), v1);
-        auto it2 = std::find(_asignacion[d2].begin(), _asignacion[d2].end(), v2);
+        auto it1 = std::find(_asignacion[d1].begin(), _asignacion[d1].end(), v1); // O(N)
+        auto it2 = std::find(_asignacion[d2].begin(), _asignacion[d2].end(), v2); // O(N)
 
         if (it1 != _asignacion[d1].end() && it2 != _asignacion[d2].end()){
             *it1 = v2;
@@ -229,7 +230,7 @@ void Asignacion::relocate(int d, int v) {
         _deposito_por_vendedor[v] = d;
 
         // Borrar v del deposito actual
-        auto it = std::find(_asignacion[d_actual].begin(), _asignacion[d_actual].end(), v);
+        auto it = std::find(_asignacion[d_actual].begin(), _asignacion[d_actual].end(), v); // O(N)
         _asignacion[d_actual].erase(it);
 
         _asignacion[d].push_back(v);
@@ -273,7 +274,7 @@ int Asignacion::deposito_min_valido(int v, const std::vector<double> & vec) cons
 // Sino hay ninguno factible, devuelve -1 
 int Asignacion::vendedor_min_valido(int d, const std::vector<double> & vec) const {
     int vendedor_min = -1;
-    for(int v = 0; v < vec.size(); v++) {
+    for(int v = 0; v < vendedores(); v++) {
         if(hay_lugar(d, v) && deposito_de(v) == -1) { // Entra y todavia no lo asigne.
             if(vendedor_min == -1) vendedor_min = v; // Busco un primer factible
             else if(vec[vendedor_min] > vec[v]) vendedor_min = v;

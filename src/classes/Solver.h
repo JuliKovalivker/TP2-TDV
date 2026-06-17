@@ -17,8 +17,8 @@ class Solver {
 
         // Heuristicas
 
-        Asignacion heuristica_varianzas();
-        Asignacion heuristica_depositos();
+        Asignacion heuristica_varianzas(); // O(M*N + NlogN)
+        Asignacion heuristica_depositos(); // O(M*logM + M^2*N)
         Asignacion heuristica_demandas();
 
         // Metaheuristica
