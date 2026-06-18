@@ -11,7 +11,8 @@ class Solver {
         enum class Heuristica { VARIANZAS, DEPOSITOS, DEMANDAS };
 
         Asignacion solve(Heuristica h);
-
+        
+        void optimizar(Asignacion & asig, int k, int CANT_ITERS);
     private:
         const GAPInstance* _instancia;
 
@@ -24,7 +25,7 @@ class Solver {
         // Metaheuristica
 
         // Perturbar la asignacion sacando k vendedores random
-        void metaheuristica(Asignacion & asig, int k);
+        void metaheuristica(Asignacion & asig, int k, int CANT_ITERS);
 
         // Buqueda local
         

@@ -18,6 +18,10 @@ Asignacion Solver::solve(Heuristica h) {
     return res;
 }
 
+void Solver::optimizar(Asignacion & asig, int k = 5, int CANT_ITERS = 10) {
+    metaheuristica(asig, k, CANT_ITERS);
+}
+
 /////////////////////////////////////////////////////////
 ////////////////////// HEURÍSTICAS //////////////////////
 /////////////////////////////////////////////////////////
@@ -113,11 +117,10 @@ Asignacion Solver::heuristica_demandas() {
 ////////////////////// METAHEURÍSTICA //////////////////////
 ////////////////////////////////////////////////////////////
 
-void Solver::metaheuristica(Asignacion & asig, int k){
+Asignacion perturbar_y_copiar(Asignacion & asig, int k, int SEMILLA) {
     Asignacion copia_asig = asig;
 
     // Elegir k vendedores aleatorios
-    const int SEMILLA = 20;
     std::mt19937 gen(SEMILLA);
     std::uniform_int_distribution<int> dist(0, asig.vendedores()-1);
 
@@ -125,13 +128,25 @@ void Solver::metaheuristica(Asignacion & asig, int k){
         int v_a_sacar = dist(gen);
         copia_asig.desasignar(v_a_sacar);
     }
+    return copia_asig;
+}
 
-    relocate(copia_asig);
-    swap(copia_asig);
-    relocate(copia_asig);
-
-    if(copia_asig.costo < asig.costo){
-        asig = copia_asig;
+void Solver::metaheuristica(Asignacion & asig, int k, int CANT_ITERS){
+    const int SEMILLA = 42;
+    for(int i = 0; i < CANT_ITERS; i++){
+        Asignacion copia_asig = perturbar_y_copiar(asig, k, SEMILLA + i);
+        bool agotado = false;
+        int MAX_ITERS = 100;
+        for(int j = 0; j < MAX_ITERS && !agotado; j++){
+            int c1 = copia_asig.costo;
+            relocate_aux(copia_asig);
+            swap_aux(copia_asig);
+            relocate_aux(copia_asig);
+            if(copia_asig.costo == c1) agotado = true;
+        }
+        if(copia_asig.costo < asig.costo){
+            asig = copia_asig;
+        }
     }
 }
 

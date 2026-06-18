@@ -46,7 +46,8 @@ int main(int argc, char** argv) {
     }
 
     asignacion.print();
-
+    std::cout << asignacion.costo << std::endl;
+    solver.optimizar(asignacion, 3, 10);
     std::cout << asignacion.costo << std::endl;
 
     asignacion.guardar_en_archivo();
