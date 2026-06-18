@@ -14,7 +14,7 @@ Asignacion Solver::solve(Heuristica h) {
         default: throw std::invalid_argument("Heuristica invalida");
     }
     // Podria ser un metodo aparte que optimice
-    metaheuristica(res, 5); // Por ahora hardcodeado 5
+    // metaheuristica(res, 5); // Por ahora hardcodeado 5
     return res;
 }
 
