@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // LEER LA INSTANCIA
     std::cout << "Leyendo: " << filename << std::endl;
 
     GAPInstance inst = GAPInstance(filename);
@@ -48,6 +49,7 @@ int main(int argc, char** argv) {
     std::cout << "m (depósitos) = " << inst.m << std::endl;
     std::cout << "n (vendedores) = " << inst.n << std::endl;
 
+    // RESOLVERLA con la heuristica solicitada
     Solver solver(inst);
     Asignacion asignacion;
 
