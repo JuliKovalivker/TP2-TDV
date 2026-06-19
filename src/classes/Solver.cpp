@@ -153,7 +153,7 @@ void Solver::metaheuristica(Asignacion & asig, int k, int CANT_ITERS){
         if(actual.costo < best.costo){
             best = actual;
         }
-        actual = perturbar_y_copiar(asig, k, SEMILLA + i);
+        actual = perturbar_y_copiar(best, k, SEMILLA + i);
     }
     asig = best;
 }

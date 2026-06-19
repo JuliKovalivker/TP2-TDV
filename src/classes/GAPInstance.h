@@ -22,8 +22,6 @@ class GAPInstance {
 
         std::vector<double> capacidades;                        // c[d]: capacidad del depósito d
 
-
-        // VERRRRRRRRRR SI LA SACMOS O NO
         // Armar lista de ratios por vendedor. (ratios[d][v] es el ratio c/u del vendedor v a ir al deposito d)
         std::vector<std::vector<double>> lista_de_ratios_por_deposito() const;
     private:
