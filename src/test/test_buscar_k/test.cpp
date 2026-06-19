@@ -73,7 +73,7 @@ int main() {
         std::map<int, double> costo_por_k;
         
         Solver solver(inst);
-        Asignacion inicial = solver.solve(Solver::Heuristica::DEMANDAS);
+        Asignacion inicial = solver.solve(Solver::Heuristica::VARIANZAS);
         Asignacion asignacion = inicial;
         for (int k : ks) {
             try {
