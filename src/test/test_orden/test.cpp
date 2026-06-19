@@ -3,6 +3,7 @@
 #include <fstream>
 #include <vector>
 #include <filesystem>
+#include <map>
 
 #include "../../classes/GAPInstance.h"
 #include "../../classes/Asignacion.h"
@@ -23,13 +24,14 @@ int main() {
         { Solver::Heuristica::DEMANDAS,  "heuristica_3" }
     };
 
-    std::ofstream csv("resultados.csv");
-    if (!csv.is_open()) {
-        std::cerr << "No se pudo abrir resultados.csv para escritura." << std::endl;
-        return 1;
-    }
+    // Acumuladores: suma de costo/vendedor y cantidad de instancias válidas por heurística
+    std::map<std::string, double> suma_normalizada;
+    std::map<std::string, int>    conteo;
 
-    csv << "instancia,heuristica,costo\n";
+    for (const auto& [_, nombre_h] : heuristicas) {
+        suma_normalizada[nombre_h] = 0.0;
+        conteo[nombre_h]           = 0;
+    }
 
     int total = 0, errores = 0;
 
@@ -51,32 +53,47 @@ int main() {
             std::cout << "Procesando: " << filename << std::endl;
 
             GAPInstance inst = GAPInstance(filename);
+            int num_vendedores = inst.n;
 
             for (const auto& [heuristica, nombre_h] : heuristicas) {
                 try {
                     Solver solver(inst);
                     Asignacion asignacion = solver.solve(heuristica);
 
-                    csv << nombre << "," << nombre_h << "," << asignacion.costo << "\n";
-                    csv.flush();
+                    double costo_norm = static_cast<double>(asignacion.costo) / num_vendedores;
 
-                    std::cout << "  " << nombre_h << " -> costo: " << asignacion.costo << std::endl;
+                    suma_normalizada[nombre_h] += costo_norm;
+                    conteo[nombre_h]++;
+
+                    std::cout << "  " << nombre_h
+                              << " -> costo: " << asignacion.costo
+                              << " | costo/vendedor: " << costo_norm
+                              << std::endl;
                     total++;
                 } catch (const std::exception& e) {
-                    std::cerr << "  [ERROR] " << nombre_h << " en " << nombre << ": " << e.what() << std::endl;
-                    csv << nombre << "," << nombre_h << ",ERROR\n";
-                    csv.flush();
+                    std::cerr << "  [ERROR] " << nombre_h << " en " << nombre
+                              << ": " << e.what() << std::endl;
                     errores++;
                 }
             }
         }
     }
 
-    csv.close();
+    // Imprimir resultado final
+    std::cout << "\n===== COSTO/VENDEDOR PROMEDIO POR HEURISTICA =====\n";
+    for (const auto& [_, nombre_h] : heuristicas) {
+        if (conteo[nombre_h] > 0) {
+            double promedio = suma_normalizada[nombre_h] / conteo[nombre_h];
+            std::cout << nombre_h << ": " << promedio
+                      << "  (sobre " << conteo[nombre_h] << " instancias)\n";
+        } else {
+            std::cout << nombre_h << ": sin datos válidos\n";
+        }
+    }
 
-    std::cout << "\nListo. " << total << " experimentos completados";
+    std::cout << "\nTotal: " << total << " experimentos";
     if (errores > 0) std::cout << ", " << errores << " errores";
-    std::cout << ". Resultados en resultados.csv" << std::endl;
+    std::cout << std::endl;
 
     return errores > 0 ? 1 : 0;
 }
