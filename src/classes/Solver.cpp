@@ -135,7 +135,7 @@ void Solver::localSearch(Asignacion & asig, int MAX_ITERS) {
     bool agotado = false;
     for(int j = 0; j < MAX_ITERS && !agotado; j++){
         int c1 = asig.costo;
-        relocate_aux(asig);
+        dos_swap_aux(asig);
         swap_aux(asig);
         relocate_aux(asig);
         if(asig.costo == c1) agotado = true;

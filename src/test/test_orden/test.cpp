@@ -24,7 +24,6 @@ int main() {
         { Solver::Heuristica::DEMANDAS,  "heuristica_3" }
     };
 
-    // Acumuladores: suma de costo/vendedor y cantidad de instancias válidas por heurística
     std::map<std::string, double> suma_normalizada;
     std::map<std::string, int>    conteo;
 
@@ -33,7 +32,9 @@ int main() {
         conteo[nombre_h]           = 0;
     }
 
-    int total = 0, errores = 0;
+    double suma_global   = 0.0;
+    int    conteo_global = 0;
+    int    total = 0, errores = 0;
 
     for (const auto& dir : dirs) {
         if (!fs::exists(dir) || !fs::is_directory(dir)) {
@@ -59,11 +60,15 @@ int main() {
                 try {
                     Solver solver(inst);
                     Asignacion asignacion = solver.solve(heuristica);
+                    solver.optimizar(asignacion, 2, 10);
 
-                    double costo_norm = static_cast<double>(asignacion.costo) / num_vendedores;
+                    double costo_norm = static_cast<double>(asignacion.costo) / inst.n;
 
                     suma_normalizada[nombre_h] += costo_norm;
                     conteo[nombre_h]++;
+
+                    suma_global += costo_norm;
+                    conteo_global++;
 
                     std::cout << "  " << nombre_h
                               << " -> costo: " << asignacion.costo
@@ -79,7 +84,6 @@ int main() {
         }
     }
 
-    // Imprimir resultado final
     std::cout << "\n===== COSTO/VENDEDOR PROMEDIO POR HEURISTICA =====\n";
     for (const auto& [_, nombre_h] : heuristicas) {
         if (conteo[nombre_h] > 0) {
@@ -90,6 +94,11 @@ int main() {
             std::cout << nombre_h << ": sin datos válidos\n";
         }
     }
+
+    if (conteo_global > 0)
+        std::cout << "\nCOSTO/VENDEDOR PROMEDIO GLOBAL (todas las heurísticas): "
+                  << suma_global / conteo_global
+                  << "  (sobre " << conteo_global << " experimentos)\n";
 
     std::cout << "\nTotal: " << total << " experimentos";
     if (errores > 0) std::cout << ", " << errores << " errores";
