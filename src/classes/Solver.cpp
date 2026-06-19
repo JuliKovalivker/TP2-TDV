@@ -158,19 +158,6 @@ void Solver::metaheuristica(Asignacion & asig, int k, int CANT_ITERS){
     asig = best;
 }
 
-// const int SEMILLA = 42;
-// Asignacion copia_asig = asig;
-// Asignacion best_asig = asig;
-// for(int i = 0; i < CANT_ITERS; i++){
-//     int MAX_ITERS = 100;
-//     localSearch(copia_asig, MAX_ITERS);
-//     if(copia_asig.costo < best_asig.costo){
-//         best_asig = copia_asig;
-//     }
-//     Asignacion copia_asig = perturbar_y_copiar(asig, k, SEMILLA + i);
-// }
-// asig = best_asig;
-
 ////////////////////////////////////////////////////////////
 ////////////////////// BÚSQUEDA LOCAL //////////////////////
 ////////////////////////////////////////////////////////////
