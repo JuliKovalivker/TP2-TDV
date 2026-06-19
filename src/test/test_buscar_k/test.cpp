@@ -34,8 +34,8 @@ int main() {
         "./instances/gap/gap_e"
     };
 
-    const std::vector<int> ks = {0, 1, 2, 3, 4, 5};
-    const int CANT_ITER = 10;
+    const std::vector<int> ks = {1,2,3,4, 10};
+    const int CANT_ITER = 26;
 
     std::vector<std::string> todas_instancias;
     for (const auto& dir : dirs) {
@@ -76,7 +76,7 @@ int main() {
             Solver solver(inst);
             Asignacion asignacion;
             try {
-                asignacion = solver.solve(Solver::Heuristica::DEMANDAS);
+                asignacion = solver.solve(Solver::Heuristica::DEPOSITOS);
                 solver.optimizar(asignacion, k, CANT_ITER);
             } catch (...) {
                 std::cerr << "  [ERROR] k=" << k << " falló, saltando." << std::endl;
