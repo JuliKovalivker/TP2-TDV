@@ -1,4 +1,4 @@
-# gap_simulator
+# GAP Problem
 
 Simulador para el **Problema de Asignación Generalizada (GAP)**, que asigna vendedores a depósitos minimizando el costo total.
 
