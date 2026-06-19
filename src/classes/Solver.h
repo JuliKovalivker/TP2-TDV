@@ -19,13 +19,14 @@ class Solver {
         // Heuristicas
 
         Asignacion heuristica_varianzas(); // O(M*N + NlogN)
-        Asignacion heuristica_depositos(); // O(M*logM + M^2*N)
+        Asignacion heuristica_depositos(); // O(M*logM + M*N^2)
         Asignacion heuristica_demandas();
 
         // Metaheuristica
 
         // Perturbar la asignacion sacando k vendedores random
         void metaheuristica(Asignacion & asig, int k, int CANT_ITERS);
+        void localSearch(Asignacion & asig, int MAX_ITERS);
 
         // Buqueda local
         

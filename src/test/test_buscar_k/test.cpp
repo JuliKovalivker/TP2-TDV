@@ -34,7 +34,7 @@ int main() {
         "./instances/gap/gap_e"
     };
 
-    const std::vector<int> ks = {0, 1, 2, 3, 4, 5, 10, 15, 20};
+    const std::vector<int> ks = {0, 1, 2, 3, 4, 5};
     const int CANT_ITER = 10;
 
     std::vector<std::string> todas_instancias;
@@ -72,10 +72,9 @@ int main() {
 
         std::map<int, double> costo_por_k;
 
-        for (int kp : ks) {
+        for (int k : ks) {
             Solver solver(inst);
             Asignacion asignacion;
-            int k = (inst.n / (100)) * kp;
             try {
                 asignacion = solver.solve(Solver::Heuristica::DEMANDAS);
                 solver.optimizar(asignacion, k, CANT_ITER);
@@ -86,7 +85,7 @@ int main() {
             }
 
             costo_por_k[k] = asignacion.costo;
-            std::cout << "  k=" << kp << "% costo=" << asignacion.costo << std::endl;
+            std::cout << "  k=" << k << "% costo=" << asignacion.costo << std::endl;
         }
 
         // Encontrar el mínimo costo entre todos los ks

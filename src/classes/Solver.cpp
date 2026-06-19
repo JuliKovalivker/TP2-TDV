@@ -131,24 +131,45 @@ Asignacion perturbar_y_copiar(Asignacion & asig, int k, int SEMILLA) {
     return copia_asig;
 }
 
-void Solver::metaheuristica(Asignacion & asig, int k, int CANT_ITERS){
-    const int SEMILLA = 42;
-    for(int i = 0; i < CANT_ITERS; i++){
-        Asignacion copia_asig = perturbar_y_copiar(asig, k, SEMILLA + i);
-        bool agotado = false;
-        int MAX_ITERS = 100;
-        for(int j = 0; j < MAX_ITERS && !agotado; j++){
-            int c1 = copia_asig.costo;
-            relocate_aux(copia_asig);
-            swap_aux(copia_asig);
-            relocate_aux(copia_asig);
-            if(copia_asig.costo == c1) agotado = true;
-        }
-        if(copia_asig.costo < asig.costo){
-            asig = copia_asig;
-        }
+void Solver::localSearch(Asignacion & asig, int MAX_ITERS) {
+    bool agotado = false;
+    for(int j = 0; j < MAX_ITERS && !agotado; j++){
+        int c1 = asig.costo;
+        relocate_aux(asig);
+        swap_aux(asig);
+        relocate_aux(asig);
+        if(asig.costo == c1) agotado = true;
     }
 }
+
+void Solver::metaheuristica(Asignacion & asig, int k, int CANT_ITERS){
+    const int SEMILLA = 42;
+    int k_vendedores = (asig.vendedores() * k / (100));
+    Asignacion actual = asig;
+    Asignacion best = asig;
+    for(int i = 0; i < CANT_ITERS; i++){
+        int MAX_ITERS = 100;
+        localSearch(actual, MAX_ITERS);
+        if(actual.costo < best.costo){
+            best = actual;
+        }
+        actual = perturbar_y_copiar(asig, k, SEMILLA + i);
+    }
+    asig = best;
+}
+
+// const int SEMILLA = 42;
+// Asignacion copia_asig = asig;
+// Asignacion best_asig = asig;
+// for(int i = 0; i < CANT_ITERS; i++){
+//     int MAX_ITERS = 100;
+//     localSearch(copia_asig, MAX_ITERS);
+//     if(copia_asig.costo < best_asig.costo){
+//         best_asig = copia_asig;
+//     }
+//     Asignacion copia_asig = perturbar_y_copiar(asig, k, SEMILLA + i);
+// }
+// asig = best_asig;
 
 ////////////////////////////////////////////////////////////
 ////////////////////// BÚSQUEDA LOCAL //////////////////////
