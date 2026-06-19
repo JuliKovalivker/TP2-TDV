@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS = -std=c++17 -IClasses
-SRC = test/test_orden/test.cpp classes/GAPInstance.cpp classes/Asignacion.cpp classes/Solver.cpp utils/utils.cpp
+SRC = main.cpp classes/GAPInstance.cpp classes/Asignacion.cpp classes/Solver.cpp utils/utils.cpp
 OBJ = $(patsubst %.cpp,build/%.o,$(SRC))
 EXEC = gap_simulator
 
