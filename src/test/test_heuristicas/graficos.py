@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import sys
 
 # --- Cargar datos ---
-csv_path = sys.argv[1] if len(sys.argv) > 1 else "resultados_e.csv"
+csv_path = sys.argv[1] if len(sys.argv) > 1 else "resultados_a.csv"
 df = pd.read_csv(csv_path)
 
 # --- Agrupar costos por heurística ---
@@ -27,7 +27,7 @@ for patch, color in zip(bp["boxes"], colors):
 
 ax.set_xlabel("Heurística", fontsize=13)
 ax.set_ylabel("Costo", fontsize=13)
-ax.set_title("Distribución de costos por heurística (instancias gap_e)", fontsize=15, fontweight="bold")
+ax.set_title("Distribución de costos por heurística (instancias gap_a)", fontsize=15, fontweight="bold")
 ax.yaxis.grid(True, linestyle="--", alpha=0.7)
 ax.set_axisbelow(True)
 

@@ -179,20 +179,15 @@ void Solver::swap_aux(Asignacion & asig){
     int best_v2 = -1;
     for(int v1 = 0; v1 < asig.vendedores(); v1++){
         int d1 = asig.deposito_de(v1);
-
-        for(int d2 = 0; d2 <= asig.depositos(); d2++) { // incluye depósito "fantasma"
+        for(int v2 = v1+1; v2 < asig.vendedores(); v2++){
+            int d2 = asig.deposito_de(v2);
             if(d1 == d2) continue;
-            std::vector<int> lista_de_vendedores = asig.vendedores_de(d2);
-
-            for(int i = 0; i < lista_de_vendedores.size(); i++) {
-                int v2 = lista_de_vendedores[i];
-                if(v1 != v2 && asig.es_factible_swap(v1,v2)){
-                    int costo_nuevo = asig.costo - asig.costo_de(d1,v1) - asig.costo_de(d2, v2) + asig.costo_de(d2, v1) + asig.costo_de(d1, v2);
-                    if(costo_nuevo < best_costo) {
-                        best_costo = costo_nuevo;
-                        best_v1 = v1;
-                        best_v2 = v2;
-                    }
+            if(asig.es_factible_swap(v1,v2)){
+                int costo_nuevo = asig.costo - asig.costo_de(d1,v1) - asig.costo_de(d2, v2) + asig.costo_de(d2, v1) + asig.costo_de(d1, v2);
+                if(costo_nuevo < best_costo) {
+                    best_costo = costo_nuevo;
+                    best_v1 = v1;
+                    best_v2 = v2;
                 }
             }
         }
