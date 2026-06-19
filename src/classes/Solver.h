@@ -20,15 +20,15 @@ class Solver {
 
         Asignacion heuristica_varianzas(); // O(M*N + NlogN)
         Asignacion heuristica_depositos(); // O(M*logM + M*N^2)
-        Asignacion heuristica_demandas();
+        Asignacion heuristica_demandas();  // O(M*N + NlogN)
 
         // Metaheuristica
 
         // Perturbar la asignacion sacando k vendedores random
-        void metaheuristica(Asignacion & asig, int k, int CANT_ITERS);
-        void localSearch(Asignacion & asig, int MAX_ITERS);
+        void metaheuristica(Asignacion & asig, int k, int CANT_ITERS); // O(CANT_ITERS * N * (M+N))
+        void localSearch(Asignacion & asig, int MAX_ITERS);            // O(N*M + N^2)
 
-        // Buqueda local
+        // Buqueda local que AGOTA
         
         void swap(Asignacion & asig);
         void dos_swap(Asignacion & asig);
@@ -36,9 +36,9 @@ class Solver {
         
         // Auxiliares que ejecutan 1 sola vez la búsqueda
         
-        void swap_aux(Asignacion & asig);
-        void dos_swap_aux(Asignacion & asig);
-        void relocate_aux(Asignacion & asig);
+        void swap_aux(Asignacion & asig);       // O(N^2)
+        void dos_swap_aux(Asignacion & asig);   // O(N^2)
+        void relocate_aux(Asignacion & asig);   // O(N*M)
         
 
         // Auxiliares
