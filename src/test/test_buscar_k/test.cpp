@@ -34,7 +34,7 @@ int main() {
         "./instances/gap/gap_e"
     };
 
-    const std::vector<int> ks = {1,4,5,6,7,10,12,15};
+    const std::vector<int> ks = {0,10,20,30,40,50,60,70,80,90,100};
     const int CANT_ITER = 15;
 
     std::vector<std::string> todas_instancias;

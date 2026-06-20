@@ -62,7 +62,8 @@ int main(int argc, char** argv) {
 
     asignacion.print();
     std::cout << "== COSTO ANTES DE OPTIMIZAR: "<< asignacion.costo << std::endl;
-    solver.optimizar(asignacion, 4, 25);
+    solver.optimizar(asignacion, 10, 25);
+    asignacion.print();
     std::cout << "== COSTO DESPUES DE OPTIMIZAR: "<< asignacion.costo << std::endl;
 
     asignacion.guardar_en_archivo();
