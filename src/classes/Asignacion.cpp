@@ -43,7 +43,7 @@ void Asignacion::desasignar(int v) {
 
         _deposito_por_vendedor[v] = d_fantasma;
 
-        _capacidades_remanentes[d] -= _instancia->demandas[d][v];
+        _capacidades_remanentes[d] += _instancia->demandas[d][v];
 
         costo = costo - costo_de(d, v) + costo_de(d_fantasma, v);
     }
