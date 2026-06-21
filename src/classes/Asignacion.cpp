@@ -152,16 +152,16 @@ bool Asignacion::es_factible_swap(int v1, int v2) const {
     // si d1 es fantasma
     if(es_deposito_fantasma(d1)) {
         int c2 = capacidad_remanente(d2);
-        return c2 - _instancia->demandas[d2][v2] >= _instancia->demandas[d2][v1];
+        return c2 + _instancia->demandas[d2][v2] >= _instancia->demandas[d2][v1];
     }
     else if(es_deposito_fantasma(d2)) {
         int c1 = capacidad_remanente(d1);
-        return c1 - _instancia->demandas[d1][v1] >= _instancia->demandas[d1][v2];
+        return c1 + _instancia->demandas[d1][v1] >= _instancia->demandas[d1][v2];
     } else {
         int c1 = capacidad_remanente(d1);
         int c2 = capacidad_remanente(d2);
 
-        return c1 - _instancia->demandas[d1][v1] >= _instancia->demandas[d1][v2] && c2 - _instancia->demandas[d2][v2] >= _instancia->demandas[d2][v1];
+        return c1 + _instancia->demandas[d1][v1] >= _instancia->demandas[d1][v2] && c2 + _instancia->demandas[d2][v2] >= _instancia->demandas[d2][v1];
     }
 }
 
@@ -183,16 +183,16 @@ bool Asignacion::es_factible_2swap(std::pair<int, int> v1, std::pair<int, int> v
     // si d1 es fantasma
     if(es_deposito_fantasma(d1)) {
         int c2 = capacidad_remanente(d2);
-        return c2 - _instancia->demandas[d2][v21] - _instancia->demandas[d2][v22] >= _instancia->demandas[d2][v11] + _instancia->demandas[d2][v12];
+        return c2 + _instancia->demandas[d2][v21] + _instancia->demandas[d2][v22] >= _instancia->demandas[d2][v11] + _instancia->demandas[d2][v12];
     }
     else if(es_deposito_fantasma(d2)) {
         int c1 = capacidad_remanente(d1);
-        return  c1 - _instancia->demandas[d1][v11] - _instancia->demandas[d1][v12]  >= _instancia->demandas[d1][v21] + _instancia->demandas[d1][v22];
+        return  c1 + _instancia->demandas[d1][v11] + _instancia->demandas[d1][v12]  >= _instancia->demandas[d1][v21] + _instancia->demandas[d1][v22];
     } else {
         int c1 = capacidad_remanente(d1);
         int c2 = capacidad_remanente(d2);
 
-        return c1 - _instancia->demandas[d1][v11] - _instancia->demandas[d1][v12]  >= _instancia->demandas[d1][v21] + _instancia->demandas[d1][v22] && c2 - _instancia->demandas[d2][v21] - _instancia->demandas[d2][v22] >= _instancia->demandas[d2][v11] + _instancia->demandas[d2][v12];
+        return c1 + _instancia->demandas[d1][v11] + _instancia->demandas[d1][v12]  >= _instancia->demandas[d1][v21] + _instancia->demandas[d1][v22] && c2 + _instancia->demandas[d2][v21] + _instancia->demandas[d2][v22] >= _instancia->demandas[d2][v11] + _instancia->demandas[d2][v12];
     }
 }
 
@@ -247,7 +247,7 @@ void Asignacion::relocate(int d, int v) {
 // O(m)
 int Asignacion::deposito_mas_barato(int v) const {
     int deposito_actual = deposito_de(v);
-    int min = 0;
+    int min = (deposito_actual == 0) ? 1 : 0;
     for(int d = 0; d < depositos(); d++) {
         if (costo_de(min,v) > costo_de(d,v) && d != deposito_actual){
             min = d;

@@ -153,7 +153,7 @@ void Solver::metaheuristica(Asignacion & asig, int k, int CANT_ITERS){
         if(actual.costo < best.costo){
             best = actual;
         }
-        actual = perturbar_y_copiar(best, k, SEMILLA + i);
+        actual = perturbar_y_copiar(best, k_vendedores, SEMILLA + i);
     }
     asig = best;
 }
@@ -252,7 +252,7 @@ void Solver::relocate_aux(Asignacion & asig) {
         int d_actual = asig.deposito_de(v);
         for(int d = 0; d < asig.depositos(); d++){
             if(d == d_actual) continue;
-            if(asig.capacidad_remanente(d) > asig.demanda_de(d, v)){
+            if(asig.capacidad_remanente(d) >= asig.demanda_de(d, v)){
                 int costo_nuevo = asig.costo - asig.costo_de(d_actual, v) + asig.costo_de(d,v);
                 if(costo_nuevo < best_costo) {
                     best_costo = costo_nuevo;
