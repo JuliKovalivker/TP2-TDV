@@ -60,7 +60,6 @@ int main(int argc, char** argv) {
     else if (heuristica == 3)
         asignacion = solver.solve(Solver::Heuristica::DEMANDAS);
 
-    asignacion.print();
     std::cout << "== COSTO ANTES DE OPTIMIZAR: "<< asignacion.costo << std::endl;
     solver.optimizar(asignacion, 5, 25);
     asignacion.print();
