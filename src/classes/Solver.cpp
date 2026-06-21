@@ -13,8 +13,6 @@ Asignacion Solver::solve(Heuristica h) {
         case Heuristica::DEMANDAS:  res = heuristica_demandas(); break;
         default: throw std::invalid_argument("Heuristica invalida");
     }
-    // Podria ser un metodo aparte que optimice
-    // metaheuristica(res, 5); // Por ahora hardcodeado 5
     return res;
 }
 
@@ -40,12 +38,6 @@ Asignacion Solver::heuristica_varianzas() {
         int vendedor = sig.first;
         int deposito = asig.deposito_min_valido(vendedor, costos[vendedor]);
         asig.asignar(deposito, vendedor);
-        
-        // si lo sature al deposito -> recalculo varianzas
-        // Podriamos ver el min tambien
-        //     if(inst.capacidades[deposito] == 0) { TIENE SENTIDO???
-        //         recalcular_varianzas(varianazs)
-        //     }
 
         asignados++;
     }
