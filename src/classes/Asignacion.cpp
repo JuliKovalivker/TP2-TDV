@@ -115,14 +115,14 @@ const std::vector<int>& Asignacion::vendedores_de(int deposito) const{
     return _asignacion[deposito];
 }
 
-int Asignacion::costo_de(int deposito, int vendedor) const {
+double Asignacion::costo_de(int deposito, int vendedor) const {
     if(!es_deposito_fantasma(deposito)){
         return _instancia->costos[deposito][vendedor];
     }
     return _instancia->costo_max*3;
 }
 
-int Asignacion::demanda_de(int deposito, int vendedor) const {
+double Asignacion::demanda_de(int deposito, int vendedor) const {
     if(es_deposito_fantasma(deposito)){
         return 0;
     }
@@ -130,7 +130,7 @@ int Asignacion::demanda_de(int deposito, int vendedor) const {
 }
 
 // PRE: No es el deposito fantasma
-int Asignacion::capacidad_remanente(int deposito) const{
+double Asignacion::capacidad_remanente(int deposito) const{
     return _capacidades_remanentes[deposito];
 }
 
@@ -151,15 +151,15 @@ bool Asignacion::es_factible_swap(int v1, int v2) const {
 
     // si d1 es fantasma
     if(es_deposito_fantasma(d1)) {
-        int c2 = capacidad_remanente(d2);
+        double c2 = capacidad_remanente(d2);
         return c2 + _instancia->demandas[d2][v2] >= _instancia->demandas[d2][v1];
     }
     else if(es_deposito_fantasma(d2)) {
-        int c1 = capacidad_remanente(d1);
+        double c1 = capacidad_remanente(d1);
         return c1 + _instancia->demandas[d1][v1] >= _instancia->demandas[d1][v2];
     } else {
-        int c1 = capacidad_remanente(d1);
-        int c2 = capacidad_remanente(d2);
+        double c1 = capacidad_remanente(d1);
+        double c2 = capacidad_remanente(d2);
 
         return c1 + _instancia->demandas[d1][v1] >= _instancia->demandas[d1][v2] && c2 + _instancia->demandas[d2][v2] >= _instancia->demandas[d2][v1];
     }
@@ -182,15 +182,15 @@ bool Asignacion::es_factible_2swap(std::pair<int, int> v1, std::pair<int, int> v
 
     // si d1 es fantasma
     if(es_deposito_fantasma(d1)) {
-        int c2 = capacidad_remanente(d2);
+        double c2 = capacidad_remanente(d2);
         return c2 + _instancia->demandas[d2][v21] + _instancia->demandas[d2][v22] >= _instancia->demandas[d2][v11] + _instancia->demandas[d2][v12];
     }
     else if(es_deposito_fantasma(d2)) {
-        int c1 = capacidad_remanente(d1);
+        double c1 = capacidad_remanente(d1);
         return  c1 + _instancia->demandas[d1][v11] + _instancia->demandas[d1][v12]  >= _instancia->demandas[d1][v21] + _instancia->demandas[d1][v22];
     } else {
-        int c1 = capacidad_remanente(d1);
-        int c2 = capacidad_remanente(d2);
+        double c1 = capacidad_remanente(d1);
+        double c2 = capacidad_remanente(d2);
 
         return c1 + _instancia->demandas[d1][v11] + _instancia->demandas[d1][v12]  >= _instancia->demandas[d1][v21] + _instancia->demandas[d1][v22] && c2 + _instancia->demandas[d2][v21] + _instancia->demandas[d2][v22] >= _instancia->demandas[d2][v11] + _instancia->demandas[d2][v12];
     }

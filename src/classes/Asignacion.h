@@ -31,12 +31,12 @@ class Asignacion {
 
         int deposito_de(int vendedor) const;                                            // O(1)
         const std::vector<int>& vendedores_de(int deposito) const;                      // O(1)
-        int costo_de(int deposito, int vendedor) const;                                 // O(1)
-        int demanda_de(int deposito, int vendedor) const;                               // O(1)
+        double costo_de(int deposito, int vendedor) const;                              // O(1)
+        double demanda_de(int deposito, int vendedor) const;                            // O(1)
 
         bool es_deposito_fantasma(int deposito) const;                                  // O(1)
         
-        int capacidad_remanente(int deposito) const;                                    // O(1)
+        double capacidad_remanente(int deposito) const;                                 // O(1)
         bool hay_lugar(int d, int v) const;                                             // O(1)
         bool es_factible_swap(int v1, int v2) const;                                    // O(1)
         bool es_factible_2swap(std::pair<int, int> v1, std::pair<int, int> v2) const;   // O(1)

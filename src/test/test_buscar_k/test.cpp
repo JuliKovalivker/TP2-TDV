@@ -34,8 +34,8 @@ int main() {
         "./instances/gap/gap_e"
     };
 
-    const std::vector<int> ks = {0,10,20,30,40,50,60,70,80,90,100};
-    const int CANT_ITER = 15;
+    const std::vector<int> ks = {0,5,10,20,50};
+    const int CANT_ITER = 10;
 
     std::vector<std::string> todas_instancias;
     for (const auto& dir : dirs) {
@@ -73,7 +73,7 @@ int main() {
         std::map<int, double> costo_por_k;
         
         Solver solver(inst);
-        Asignacion inicial = solver.solve(Solver::Heuristica::DEMANDAS);
+        Asignacion inicial = solver.solve(Solver::Heuristica::DEPOSITOS);
         Asignacion asignacion = inicial;
         for (int k : ks) {
             try {

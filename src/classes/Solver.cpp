@@ -166,7 +166,7 @@ void Solver::agotar_busqueda_local(Asignacion & asig, Func buqueda_local, int k)
 }
 
 void Solver::swap_aux(Asignacion & asig){
-    int best_costo = asig.costo;
+    double best_costo = asig.costo;
     int best_v1 = -1;
     int best_v2 = -1;
     for(int v1 = 0; v1 < asig.vendedores(); v1++){
@@ -175,7 +175,7 @@ void Solver::swap_aux(Asignacion & asig){
             int d2 = asig.deposito_de(v2);
             if(d1 == d2) continue;
             if(asig.es_factible_swap(v1,v2)){
-                int costo_nuevo = asig.costo - asig.costo_de(d1,v1) - asig.costo_de(d2, v2) + asig.costo_de(d2, v1) + asig.costo_de(d1, v2);
+                double costo_nuevo = asig.costo - asig.costo_de(d1,v1) - asig.costo_de(d2, v2) + asig.costo_de(d2, v1) + asig.costo_de(d1, v2);
                 if(costo_nuevo < best_costo) {
                     best_costo = costo_nuevo;
                     best_v1 = v1;
@@ -195,7 +195,7 @@ void Solver::swap(Asignacion & asig){
 
 // 2-swap mas cercanos
 void Solver::dos_swap_aux(Asignacion & asig){
-    int best_costo = asig.costo;
+    double best_costo = asig.costo;
     std::vector<int> best = {-1,-1,-1,-1}; 
     for(int d1 = 0; d1 <= asig.depositos(); d1++){
         for(int d2 = d1+1; d2 <= asig.depositos(); d2++) {
@@ -215,7 +215,7 @@ void Solver::dos_swap_aux(Asignacion & asig){
                 // del segundo deposito
                 int v21 = mejores_2.first;
                 int v22 = mejores_2.second;
-                int costo_nuevo = asig.costo - asig.costo_de(d1, v11) - asig.costo_de(d1, v12) - asig.costo_de(d2, v21) - asig.costo_de(d2, v22) + asig.costo_de(d1, v21) + asig.costo_de(d1, v22) + asig.costo_de(d2, v11) + asig.costo_de(d2, v12);
+                double costo_nuevo = asig.costo - asig.costo_de(d1, v11) - asig.costo_de(d1, v12) - asig.costo_de(d2, v21) - asig.costo_de(d2, v22) + asig.costo_de(d1, v21) + asig.costo_de(d1, v22) + asig.costo_de(d2, v11) + asig.costo_de(d2, v12);
                 if(costo_nuevo < best_costo){
                     best[0] = v11;
                     best[1] = v21;
@@ -237,7 +237,7 @@ void Solver::dos_swap(Asignacion & asig){
 }
 
 void Solver::relocate_aux(Asignacion & asig) {
-    int best_costo = asig.costo;
+    double best_costo = asig.costo;
     std::vector<int> best = {-1,-1}; // best[0] es el deposito y best[1] es el vendedor
 
     for (int v = 0; v < asig.vendedores(); v++){
@@ -245,7 +245,7 @@ void Solver::relocate_aux(Asignacion & asig) {
         for(int d = 0; d < asig.depositos(); d++){
             if(d == d_actual) continue;
             if(asig.capacidad_remanente(d) >= asig.demanda_de(d, v)){
-                int costo_nuevo = asig.costo - asig.costo_de(d_actual, v) + asig.costo_de(d,v);
+                double costo_nuevo = asig.costo - asig.costo_de(d_actual, v) + asig.costo_de(d,v);
                 if(costo_nuevo < best_costo) {
                     best_costo = costo_nuevo;
                     best[0] = d;
